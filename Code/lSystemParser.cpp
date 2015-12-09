@@ -17,7 +17,7 @@ int longest_rule = 0;
 
 void readLSystem() 
 { 
-    std::ifstream file("l1.txt");
+    std::ifstream file("Lsystems/l3.txt");
     std::string str; 
 
     int i = 0; 
@@ -81,5 +81,5 @@ std::string gen_string(std::string last_string, int iter, int final_iter) {
 
 int main() {
     readLSystem(); 
-    cout << gen_string(axiom, 0, 3) << endl; 
+    cout << gen_string(axiom, 0, 2) << endl; 
 }

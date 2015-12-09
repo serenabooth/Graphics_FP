@@ -1030,7 +1030,7 @@ static void constructRobot(shared_ptr<SgTransformNode> base, const Cvec3& color)
   }
 }
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
-  std::string tmp = "F[F]";
+  std::string tmp = "F[F";
 
   // struct JointDesc {
   //   int parent;
@@ -1044,6 +1044,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
   // };
 
   vector< shared_ptr<SgTransformNode> > jointNodes;
+  jointNodes.push_back(base);
 
   vector< shared_ptr<SgTransformNode> > tree; 
   tree.push_back(base);
@@ -1060,13 +1061,13 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
 
   for (int i = 0; i < tmp.length(); ++i) {
     if (tmp.substr(i, 1) == "F") {
-      tree[cur_jointId]->addChild(shared_ptr<MyShapeNode>(
+      jointNodes[cur_jointId]->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_cube,
                                           color,
                                           lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
                                           Cvec3(0.25, 1.0, 0.25))));
-      lastLocation = RigTForm(lastLocation.getTranslation() + Cvec3(0, 1.0, 0), lastLocation.getRotation());
+      lastLocation = RigTForm(lastLocation.getTranslation() + Cvec3(0, 0.5, 0), lastLocation.getRotation());
     } 
     else if (tmp.substr(i, 1) == "+") {
       lastLocation = RigTForm(lastLocation.getTranslation(), lastLocation.getRotation() + Quat(0,0.25,0,0)); 

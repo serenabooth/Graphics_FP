@@ -1,4 +1,4 @@
-BASE = asst1
+BASE = finalproject
 
 all: $(BASE)
 
@@ -12,7 +12,7 @@ endif
 
 ifeq ($(OS), Darwin) # Assume OS X
   CPPFLAGS += -D__MAC__ -stdlib=libstdc++
-  LDFLAGS += -framework GLUT -framework OpenGL
+  LDFLAGS += -framework GLUT -framework OpenGL 
 endif
 
 ifdef OPT 
@@ -25,7 +25,7 @@ endif
 
 CXX = g++ 
 
-OBJ = $(BASE).o ppm.o glsupport.o
+OBJ = $(BASE).o ppm.o glsupport.o scenegraph.o picker.o
 
 $(BASE): $(OBJ)
 	$(LINK.cpp) -o $@ $^ $(LIBS) 
