@@ -1030,7 +1030,7 @@ static void constructRobot(shared_ptr<SgTransformNode> base, const Cvec3& color)
   }
 }
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
-  std::string tmp = "F[F";
+  std::string tmp = "F+F";
 
   // struct JointDesc {
   //   int parent;
@@ -1046,18 +1046,22 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
   vector< shared_ptr<SgTransformNode> > jointNodes;
   jointNodes.push_back(base);
 
-  vector< shared_ptr<SgTransformNode> > tree; 
-  tree.push_back(base);
+  //vector< shared_ptr<SgTransformNode> > tree; 
+  //tree.push_back(base);
 
   vector< int > jointIds; 
   int cur_jointId = 0; 
   int highest_jointId = 0; 
   jointIds.push_back(cur_jointId);
 
+  vector< int > scalePos;
+
   vector< RigTForm > positions; 
   RigTForm lastLocation = RigTForm(); 
   positions.push_back(lastLocation);
 
+
+  int rotate = 0; 
 
   for (int i = 0; i < tmp.length(); ++i) {
     if (tmp.substr(i, 1) == "F") {
@@ -1066,11 +1070,21 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           color,
                                           lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
-                                          Cvec3(0.25, 1.0, 0.25))));
-      lastLocation = RigTForm(lastLocation.getTranslation() + Cvec3(0, 0.5, 0), lastLocation.getRotation());
+                                          Cvec3(0.25,1.0,0.25))));
+      lastLocation = RigTForm(lastLocation.getTranslation() + Cvec3(0,0.5,0), lastLocation.getRotation());
     } 
     else if (tmp.substr(i, 1) == "+") {
-      lastLocation = RigTForm(lastLocation.getTranslation(), lastLocation.getRotation() + Quat(0,0.25,0,0)); 
+      int parent_id = cur_jointId; 
+
+      highest_jointId++; 
+      cur_jointId = highest_jointId;
+
+      jointNodes.push_back(base); 
+
+      jointNodes[cur_jointId].reset(new SgRbtNode(RigTForm(lastLocation.getTranslation(), Quat::makeZRotation(45))));
+      cout << "Tried to modify joint..." << endl;
+      jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
+
     } 
     else if (tmp.substr(i, 1) == "-") {
 
@@ -1084,12 +1098,14 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
 
       jointNodes.push_back(base); 
       jointNodes[cur_jointId].reset(new SgRbtNode(lastLocation));
+
       jointIds.push_back(cur_jointId);
 
       positions.push_back(lastLocation);
-
       // add child joint to parent
-      tree[parent_id]->addChild(jointNodes[cur_jointId]);
+      //tree.push_back(base);
+      jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
+
     }
     else if (tmp.substr(i, 1) == "]") {
       cur_jointId = jointIds.back();
