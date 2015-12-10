@@ -35,6 +35,7 @@
 #include "arcball.h"
 #include "scenegraph.h"
 #include "sgutils.h"
+#include "lSystemParser.h"
 
 #include "asstcommon.h"
 #include "drawer.h"
@@ -1173,6 +1174,9 @@ int main(int argc, char * argv[]) {
     else if (g_Gl2Compatible && !GLEW_VERSION_2_0)
       throw runtime_error("Error: card/driver does not support OpenGL Shading Language v1.0");
 #endif
+
+    //LSystem* check = new LSystem("l3.txt");
+    //cout << check->gen_string(check->axiom, 0, 3) << endl;
 
     initGLState();
     initShaders();
