@@ -1031,8 +1031,8 @@ static void constructRobot(shared_ptr<SgTransformNode> base, const Cvec3& color)
   }
 }
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
-  std::string tmp = "FF−[[F−[[X]+X]+F[+FX]−X]+F−[[X]+X]+F[+FX]−X]+FF[+FFF−[[X]+X]+F[+FX]−X]−F−[[X]+X]+F[+FX]−X";
-
+  LSystem* check = new LSystem("Lsystems/l3.txt");
+  std::string tmp = check->gen_string(check->axiom, 0, 3);
   // struct JointDesc {
   //   int parent;
   //   float x, y, z;
@@ -1174,9 +1174,6 @@ int main(int argc, char * argv[]) {
     else if (g_Gl2Compatible && !GLEW_VERSION_2_0)
       throw runtime_error("Error: card/driver does not support OpenGL Shading Language v1.0");
 #endif
-
-    //LSystem* check = new LSystem("l3.txt");
-    //cout << check->gen_string(check->axiom, 0, 3) << endl;
 
     initGLState();
     initShaders();
