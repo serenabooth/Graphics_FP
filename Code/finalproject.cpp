@@ -1030,7 +1030,7 @@ static void constructRobot(shared_ptr<SgTransformNode> base, const Cvec3& color)
   }
 }
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
-  std::string tmp = "FFF+F";
+  std::string tmp = "FF+FF+F";
 
   // struct JointDesc {
   //   int parent;
@@ -1049,16 +1049,16 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
   //vector< shared_ptr<SgTransformNode> > tree; 
   //tree.push_back(base);
 
-  vector< int > jointIds; 
+  vector< int > jointIds;
   int cur_jointId = 0; 
   int highest_jointId = 0; 
   jointIds.push_back(cur_jointId);
 
-  vector< int > scalePos;
+  //vector< int > scalePos;
 
-  vector< RigTForm > positions; 
-  RigTForm lastLocation = RigTForm(); 
-  positions.push_back(lastLocation);
+  // vector< int > positions; 
+  // int lastLocation = 0; 
+  // positions.push_back(lastLocation);
 
 
   int rotate = 0; 
@@ -1068,62 +1068,76 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
       jointNodes[cur_jointId]->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_cube,
                                           color,
-                                          lastLocation.getTranslation(),
+                                          Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
                                           Cvec3(0.25,1.0,0.25))));
-      lastLocation = RigTForm(Cvec3(lastLocation.getTranslation()) + Cvec3(0,1,0), lastLocation.getRotation());
+      //lastLocation = RigTForm(Cvec3(lastLocation.getTranslation()) + Cvec3(0,1,0), lastLocation.getRotation());
 
       //lastLocation = RigTForm();
+
+
+      shared_ptr<SgTransformNode> transformNode;
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,1,0))));
+      jointNodes.push_back( transformNode );
+      jointNodes[cur_jointId]->addChild(transformNode);
+      highest_jointId++;
+      cur_jointId = highest_jointId;
     } 
     else if (tmp.substr(i, 1) == "+") {
-      int parent_id = cur_jointId; 
+      // int parent_id = cur_jointId; 
 
-      highest_jointId++; 
-      cur_jointId = highest_jointId;
+      // highest_jointId++;
+      // cur_jointId = highest_jointId;
 
-      lastLocation = RigTForm(lastLocation.getTranslation(),lastLocation.getRotation() + Quat::makeZRotation(90));
+      // //lastLocation = RigTForm(lastLocation.getTranslation(),lastLocation.getRotation() + Quat::makeZRotation(90));
 
-      jointNodes.push_back(base); 
-      jointNodes[cur_jointId].reset(new SgRbtNode(lastLocation));
+      // jointNodes.push_back(base); 
+      // jointNodes[cur_jointId].reset(new SgRbtNode(lastLocation));
       
-      cout << "Tried to modify joint..." << endl;
-      jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
+      // cout << "Tried to modify joint..." << endl;
+      // jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
 
+      shared_ptr<SgTransformNode> transformNode;
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(-0.2,-0.2,0),Quat::makeZRotation(10))));
+      jointNodes.push_back( transformNode );
+      jointNodes[cur_jointId]->addChild(transformNode);
+      highest_jointId++;
+      cur_jointId = highest_jointId;
     } 
     else if (tmp.substr(i, 1) == "-") {
 
     } 
     else if (tmp.substr(i, 1) == "[") {
-      // increment joint count
-      int parent_id = cur_jointId; 
+      // // increment joint count
+      // int parent_id = cur_jointId; 
 
-      highest_jointId++; 
-      cur_jointId = highest_jointId; 
+      // highest_jointId++; 
+      // cur_jointId = highest_jointId; 
 
-      jointNodes.push_back(base); 
-      lastLocation = RigTForm(lastLocation);
+      // jointNodes.push_back(base); 
+      // lastLocation = RigTForm(lastLocation);
 
-      jointNodes[cur_jointId].reset(new SgRbtNode(lastLocation));
-
-
-      jointIds.push_back(cur_jointId);
-      positions.push_back(lastLocation);
-
-      //lastLocation = RigTForm(Cvec3(lastLocation.getTranslation()) + Cvec3(0,1,0), lastLocation.getRotation());
+      // jointNodes[cur_jointId].reset(new SgRbtNode(lastLocation));
 
 
-      // add child joint to parent
-      //tree.push_back(base);
-      jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
+      // jointIds.push_back(cur_jointId);
+      // positions.push_back(lastLocation);
+
+      // //lastLocation = RigTForm(Cvec3(lastLocation.getTranslation()) + Cvec3(0,1,0), lastLocation.getRotation());
+
+
+      // // add child joint to parent
+      // //tree.push_back(base);
+      // jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
 
     }
     else if (tmp.substr(i, 1) == "]") {
 
-      cout << "Popped" << endl; 
-      cur_jointId = jointIds.back();
-      jointIds.pop_back(); 
-      lastLocation = positions.back();
-      positions.pop_back();  
+      // cout << "Popped" << endl; 
+      // cur_jointId = jointIds.back();
+      // jointIds.pop_back(); 
+      // lastLocation = positions.back();
+      // positions.pop_back();  
     }
     else if (tmp.substr(i, 1) == "X") {
 
