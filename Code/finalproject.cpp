@@ -484,8 +484,9 @@ static void drawStuff(const ShaderState& curSS, bool picking) {
     Drawer drawer(invEyeRbt, curSS);
     g_world->accept(drawer);
 
-    if (g_displayArcball && shouldUseArcball())
+    if (g_displayArcball && shouldUseArcball()) {
       drawArcBall(curSS);
+    }
   }
   else {
     Picker picker(invEyeRbt, curSS);
@@ -1031,24 +1032,11 @@ static void constructRobot(shared_ptr<SgTransformNode> base, const Cvec3& color)
   }
 }
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
-  LSystem* check = new LSystem("Lsystems/l3.txt");
-  std::string tmp = check->gen_string(check->axiom, 0, 3);
-  // struct JointDesc {
-  //   int parent;
-  //   float x, y, z;
-  // };
-
-  // struct ShapeDesc {
-  //   int parentJointId;
-  //   float x, y, z, sx, sy, sz;
-  //   shared_ptr<Geometry> geometry;
-  // };
+  LSystem* check = new LSystem("Lsystems/l4.txt");
+  std::string tmp = check->gen_string(check->axiom, 0, 4);
 
   vector< shared_ptr<SgTransformNode> > jointNodes;
   jointNodes.push_back(base);
-
-  //vector< shared_ptr<SgTransformNode> > tree; 
-  //tree.push_back(base);
 
   vector< int > jointIds;
   int cur_jointId = 0; 
@@ -1071,14 +1059,10 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           color,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
-                                          Cvec3(0.1,0.5,0.1))));
-      //lastLocation = RigTForm(Cvec3(lastLocation.getTranslation()) + Cvec3(0,1,0), lastLocation.getRotation());
-
-      //lastLocation = RigTForm();
-
+                                          Cvec3(0.01,0.2,0.01))));
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.5,0))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.2,0))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1087,7 +1071,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     else if (tmp.substr(i, 1) == "+") {
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(-0.1,-0.1,0),Quat::makeZRotation(10))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(-0.01,-0.01,0),Quat::makeZRotation(10))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1095,7 +1079,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     } 
     else if (tmp.substr(i, 1) == "-") {
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0.1,0.1,0),Quat::makeZRotation(-10))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0.01,0.01,0),Quat::makeZRotation(-10))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1105,12 +1089,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
       jointIds.push_back(cur_jointId);
     }
     else if (tmp.substr(i, 1) == "]") {
-
-      // cout << "Popped" << endl; 
       cur_jointId = jointIds.back();
       jointIds.pop_back(); 
-      // lastLocation = positions.back();
-      // positions.pop_back();  
     }
     else if (tmp.substr(i, 1) == "X") {
 
@@ -1132,16 +1112,16 @@ static void initScene() {
   g_groundNode->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_ground, Cvec3(0.1, 0.95, 0.1))));
 
-  g_robot1Node.reset(new SgRbtNode(RigTForm(Cvec3(-2, 1, 0))));
-  g_robot2Node.reset(new SgRbtNode(RigTForm(Cvec3(2, 1, 0))));
+  //g_robot1Node.reset(new SgRbtNode(RigTForm(Cvec3(-2, 1, 0))));
+  //g_robot2Node.reset(new SgRbtNode(RigTForm(Cvec3(2, 1, 0))));
 
-  constructRobot(g_robot1Node, Cvec3(1, 0, 0)); // a Red robot
-  constructRobot(g_robot2Node, Cvec3(0, 0, 1)); // a Blue robot
+  //constructRobot(g_robot1Node, Cvec3(1, 0, 0)); // a Red robot
+  //constructRobot(g_robot2Node, Cvec3(0, 0, 1)); // a Blue robot
 
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
 
-  g_treeNode.reset(new SgRbtNode());
+  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
   constructTree(g_treeNode, Cvec3(0.2,0.1,0.1));
 
   g_world->addChild(g_treeNode);
