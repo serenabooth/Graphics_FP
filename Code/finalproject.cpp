@@ -1030,7 +1030,7 @@ static void constructRobot(shared_ptr<SgTransformNode> base, const Cvec3& color)
   }
 }
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
-  std::string tmp = "F+F";
+  std::string tmp = "FFF+F";
 
   // struct JointDesc {
   //   int parent;
@@ -1071,7 +1071,9 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
                                           Cvec3(0.25,1.0,0.25))));
-      lastLocation = RigTForm(lastLocation.getTranslation() + Cvec3(0,0.5,0), lastLocation.getRotation());
+      lastLocation = RigTForm(Cvec3(lastLocation.getTranslation()) + Cvec3(0,1,0), lastLocation.getRotation());
+
+      //lastLocation = RigTForm();
     } 
     else if (tmp.substr(i, 1) == "+") {
       int parent_id = cur_jointId; 
@@ -1079,9 +1081,11 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
       highest_jointId++; 
       cur_jointId = highest_jointId;
 
-      jointNodes.push_back(base); 
+      lastLocation = RigTForm(lastLocation.getTranslation(),lastLocation.getRotation() + Quat::makeZRotation(90));
 
-      jointNodes[cur_jointId].reset(new SgRbtNode(RigTForm(lastLocation.getTranslation(), Quat::makeZRotation(45))));
+      jointNodes.push_back(base); 
+      jointNodes[cur_jointId].reset(new SgRbtNode(lastLocation));
+      
       cout << "Tried to modify joint..." << endl;
       jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
 
@@ -1097,17 +1101,25 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
       cur_jointId = highest_jointId; 
 
       jointNodes.push_back(base); 
+      lastLocation = RigTForm(lastLocation);
+
       jointNodes[cur_jointId].reset(new SgRbtNode(lastLocation));
 
-      jointIds.push_back(cur_jointId);
 
+      jointIds.push_back(cur_jointId);
       positions.push_back(lastLocation);
+
+      //lastLocation = RigTForm(Cvec3(lastLocation.getTranslation()) + Cvec3(0,1,0), lastLocation.getRotation());
+
+
       // add child joint to parent
       //tree.push_back(base);
       jointNodes[parent_id]->addChild(jointNodes[cur_jointId]);
 
     }
     else if (tmp.substr(i, 1) == "]") {
+
+      cout << "Popped" << endl; 
       cur_jointId = jointIds.back();
       jointIds.pop_back(); 
       lastLocation = positions.back();
