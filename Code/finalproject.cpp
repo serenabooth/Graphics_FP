@@ -14,6 +14,7 @@
 #include <map>
 #include <fstream>
 #include <stdexcept>
+#include <stdlib.h>
 #if __GNUG__
 #   include <tr1/memory>
 #endif
@@ -44,6 +45,8 @@
 using namespace std;
 using namespace tr1;
 
+static void initScene(); 
+static void initAnimation();
 // G L O B A L S ///////////////////////////////////////////////////
 
 // --------- IMPORTANT --------------------------------------------------------
@@ -89,6 +92,9 @@ static double g_arcballScale = 1;
 static bool g_pickingMode = false;
 
 static bool g_playingAnimation = false;
+
+static int num_iterations = 6; 
+static std::string tree_description = ""; 
 
 // -------- Shaders
 static const int g_numShaders = 3, g_numRegularShaders = 2;
@@ -182,14 +188,14 @@ struct Geometry {
 typedef SgGeometryShapeNode<Geometry> MyShapeNode;
 
 // Vertex buffer and index buffer associated with the ground and cube geometry
-static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_cylinder;
+static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf;
 
 // --------- Scene
 
 static const Cvec3 g_light1(2.0, 3.0, 14.0), g_light2(-2, -3.0, -5.0);  // define two lights positions in world space
 
 static shared_ptr<SgRootNode> g_world;
-static shared_ptr<SgRbtNode> g_skyNode, g_groundNode, g_robot1Node, g_robot2Node, g_treeNode;
+static shared_ptr<SgRbtNode> g_skyNode, g_groundNode, g_treeNode;
 
 static shared_ptr<SgRbtNode> g_currentCameraNode;
 static shared_ptr<SgRbtNode> g_currentPickedRbtNode;
@@ -364,19 +370,15 @@ static void initSphere() {
   g_sphere.reset(new Geometry(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
-static void initCylinder() {
+static void initLeaf() {
   int ibLen, vbLen;
   getSphereVbIbLen(20, 10, vbLen, ibLen);
 
   // Temporary storage for sphere geometry
   vector<VertexPN> vtx(vbLen);
   vector<unsigned short> idx(ibLen);
-  makeCylinder(1, 20, 10, vtx.begin(), idx.begin());
-  g_cylinder.reset(new Geometry(&vtx[0], &idx[0], vtx.size(), idx.size()));
-}
-
-static void initRobots() {
-  // Init whatever geometry needed for the robots
+  makeLeaf(1, 20, 10, vtx.begin(), idx.begin());
+  g_leaf.reset(new Geometry(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
 // takes a projection matrix and send to the the shaders
@@ -734,6 +736,9 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     << ">\t\tGo to next frame\n"
     << "<\t\tGo to prev. frame\n"
     << "y\t\tPlay/Stop animation\n"
+    << "1\t\tIncrease tree iterations\n"
+    << "2\t\tDecrease tree iteratiosn\n"
+    << ""
     << endl;
     break;
   case 's':
@@ -745,7 +750,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     break;
   case 'v':
   {
-    shared_ptr<SgRbtNode> viewers[] = {g_skyNode, g_robot1Node, g_robot2Node};
+    shared_ptr<SgRbtNode> viewers[] = {g_skyNode};
     for (int i = 0; i < 3; ++i) {
       if (g_currentCameraNode == viewers[i]) {
         g_currentCameraNode = viewers[(i+1)%3];
@@ -901,7 +906,27 @@ static void keyboard(const unsigned char key, const int x, const int y) {
       g_playingAnimation = false;
     }
     break;
+  case '1':
+    cout << "Num iterations increased" << endl;
+    num_iterations++; 
+    // NOT the correct way to do this. 
+    initScene(); 
+    initAnimation();
+
+    break; 
+  case '2':
+    num_iterations--; 
+    if (num_iterations < 0) {
+      num_iterations = 0; 
+    }
+    // NOT the correct way to do this. 
+    initScene(); 
+    initAnimation();
+
+    break; 
+
   }
+
 
   // Sanity check that our g_curKeyFrameNum is in sync with the g_curKeyFrame
   if (g_animator.getNumKeyFrames() > 0)
@@ -958,82 +983,15 @@ static void initGeometry() {
   initGround();
   initCubes();
   initSphere();
-  initCylinder(); 
-  initRobots();
+  //initCylinder(); 
+  initLeaf(); 
+  //initRobots();
 }
 
-static void constructRobot(shared_ptr<SgTransformNode> base, const Cvec3& color) {
-  const double ARM_LEN = 0.7,
-               ARM_THICK = 0.25,
-               LEG_LEN = 1,
-               LEG_THICK = 0.25,
-               TORSO_LEN = 1.5,
-               TORSO_THICK = 0.25,
-               TORSO_WIDTH = 1,
-               HEAD_SIZE = 0.7;
-  const int NUM_JOINTS = 10,
-            NUM_SHAPES = 10;
 
-  struct JointDesc {
-    int parent;
-    float x, y, z;
-  };
-
-  JointDesc jointDesc[NUM_JOINTS] = {
-    {-1}, // torso
-    {0,  TORSO_WIDTH/2, TORSO_LEN/2, 0}, // upper right arm
-    {0, -TORSO_WIDTH/2, TORSO_LEN/2, 0}, // upper left arm
-    {1,  ARM_LEN, 0, 0}, // lower right arm
-    {2, -ARM_LEN, 0, 0}, // lower left arm
-    {0, TORSO_WIDTH/2-LEG_THICK/2, -TORSO_LEN/2, 0}, // upper right leg
-    {0, -TORSO_WIDTH/2+LEG_THICK/2, -TORSO_LEN/2, 0}, // upper left leg
-    {5, 0, -LEG_LEN, 0}, // lower right leg
-    {6, 0, -LEG_LEN, 0}, // lower left
-    {0, 0, TORSO_LEN/2, 0} // head
-  };
-
-  struct ShapeDesc {
-    int parentJointId;
-    float x, y, z, sx, sy, sz;
-    shared_ptr<Geometry> geometry;
-  };
-
-  ShapeDesc shapeDesc[NUM_SHAPES] = {
-    {0, 0,         0, 0, TORSO_WIDTH, TORSO_LEN, TORSO_THICK, g_cube}, // torso
-    {1, ARM_LEN/2, 0, 0, ARM_LEN/2, ARM_THICK/2, ARM_THICK/2, g_sphere}, // upper right arm
-    {2, -ARM_LEN/2, 0, 0, ARM_LEN/2, ARM_THICK/2, ARM_THICK/2, g_sphere}, // upper left arm
-    {3, ARM_LEN/2, 0, 0, ARM_LEN, ARM_THICK, ARM_THICK, g_cube}, // lower right arm
-    {4, -ARM_LEN/2, 0, 0, ARM_LEN, ARM_THICK, ARM_THICK, g_cube}, // lower left arm
-    {5, 0, -LEG_LEN/2, 0, LEG_THICK/2, LEG_LEN/2, LEG_THICK/2, g_sphere}, // upper right leg
-    {6, 0, -LEG_LEN/2, 0, LEG_THICK/2, LEG_LEN/2, LEG_THICK/2, g_sphere}, // upper left leg
-    {7, 0, -LEG_LEN/2, 0, LEG_THICK, LEG_LEN, LEG_THICK, g_cube}, // lower right leg
-    {8, 0, -LEG_LEN/2, 0, LEG_THICK, LEG_LEN, LEG_THICK, g_cube}, // lower left leg
-    {9, 0, HEAD_SIZE/2 * 1.5, 0, HEAD_SIZE/2, HEAD_SIZE/2, HEAD_SIZE/2, g_sphere}, // head
-  };
-
-  shared_ptr<SgTransformNode> jointNodes[NUM_JOINTS];
-
-  for (int i = 0; i < NUM_JOINTS; ++i) {
-    if (jointDesc[i].parent == -1)
-      jointNodes[i] = base;
-    else {
-      jointNodes[i].reset(new SgRbtNode(RigTForm(Cvec3(jointDesc[i].x, jointDesc[i].y, jointDesc[i].z))));
-      jointNodes[jointDesc[i].parent]->addChild(jointNodes[i]);
-    }
-  }
-  for (int i = 0; i < NUM_SHAPES; ++i) {
-    shared_ptr<MyShapeNode> shape(
-      new MyShapeNode(shapeDesc[i].geometry,
-                      color,
-                      Cvec3(shapeDesc[i].x, shapeDesc[i].y, shapeDesc[i].z),
-                      Cvec3(0, 0, 0),
-                      Cvec3(shapeDesc[i].sx, shapeDesc[i].sy, shapeDesc[i].sz)));
-    jointNodes[shapeDesc[i].parentJointId]->addChild(shape);
-  }
-}
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
   LSystem* check = new LSystem("Lsystems/l4.txt");
-  std::string tmp = check->gen_string(check->axiom, 0, 4);
+  std::string tmp = check->gen_string(check->axiom, 0, num_iterations);
 
   vector< shared_ptr<SgTransformNode> > jointNodes;
   jointNodes.push_back(base);
@@ -1059,17 +1017,27 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           color,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
-                                          Cvec3(0.01,0.2,0.01))));
+                                          Cvec3(0.01,0.05,0.01))));
+      int r1 = rand() % 2;
+      int r2 = rand() % 2 - 1; 
+      if (r1 == 0 && rotate == 1) {
+        jointNodes[cur_jointId]->addChild(shared_ptr<MyShapeNode>(
+                           new MyShapeNode(g_leaf,
+                                          Cvec3(0,0.99,0),
+                                          Cvec3(0.02,0,0), //lastLocation.getTranslation(),
+                                          Cvec3(rand() % 15, 90 + rand() % 15, 90+ rand() % 15 ),
+                                          Cvec3(0.02,0.02,0.02))));
+      }
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.2,0))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.05,0))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
       cur_jointId = highest_jointId;
     } 
     else if (tmp.substr(i, 1) == "+") {
-
+      rotate = 1; 
       shared_ptr<SgTransformNode> transformNode;
       transformNode.reset(new SgRbtNode(RigTForm(Cvec3(-0.01,-0.01,0),Quat::makeZRotation(10))));
       jointNodes.push_back( transformNode );
