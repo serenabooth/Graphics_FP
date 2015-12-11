@@ -20,27 +20,23 @@ private:
 public: 
     std::string axiom; 
 
-    LSystem(const char* file_name) { 
+    LSystem(std::string file_name) { 
         cout << file_name << endl; 
         longest_rule = 0; 
         readLSystem(file_name);  
     }
 
-    void readLSystem(const char* file_name);
+    void readLSystem(std::string file_name);
     std::string gen_string(std::string last_string, int iter, int final_iter);
 
 };
 
-// LSystem::LSystem(std::string file){
-//     readLSystem(file);
-// }
-
-void LSystem::readLSystem(const char* file_name) 
+void LSystem::readLSystem(std::string file_name) 
 { 
     cout << file_name << endl; 
 
     std::ifstream file;
-    file.open(file_name);
+    file.open(file_name.c_str());
     std::string str; 
 
     int i = 0; 
@@ -66,16 +62,15 @@ void LSystem::readLSystem(const char* file_name)
 
 std::string LSystem::gen_string(std::string last_string, int iter, int final_iter) {
     if (iter == final_iter) {
-        cout << "last iteration: " << last_string << endl; 
+        //cout << "last iteration: " << last_string << endl; 
         return last_string; 
     }
 
     int i = 0; 
     std::string output = ""; 
 
-    cout << "gen string called" << endl; 
-    cout << "longest_rule: " << longest_rule << endl;
-
+    //cout << "gen string called" << endl; 
+    //cout << "longest_rule: " << longest_rule << endl;
 
     while (i < last_string.length()) {
         bool fl = false; 

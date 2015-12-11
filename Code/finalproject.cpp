@@ -5,7 +5,7 @@
 //   Professor Steven Gortler
 //
 ////////////////////////////////////////////////////////////////////////
-
+#include <sstream>
 #include <cstddef>
 #include <vector>
 #include <list>
@@ -94,7 +94,8 @@ static bool g_pickingMode = false;
 static bool g_playingAnimation = false;
 
 static int num_iterations = 6; 
-static std::string tree_description = ""; 
+static std::string tree_lookup = "Lsystems/l0.txt"; 
+static int selected_tree = 0; 
 
 // -------- Shaders
 static const int g_numShaders = 3, g_numRegularShaders = 2;
@@ -738,6 +739,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     << "y\t\tPlay/Stop animation\n"
     << "1\t\tIncrease tree iterations\n"
     << "2\t\tDecrease tree iteratiosn\n"
+    << "3\t\tChange tree l system"
     << ""
     << endl;
     break;
@@ -912,7 +914,6 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     // NOT the correct way to do this. 
     initScene(); 
     initAnimation();
-
     break; 
   case '2':
     num_iterations--; 
@@ -922,8 +923,16 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     // NOT the correct way to do this. 
     initScene(); 
     initAnimation();
-
     break; 
+  case '3':
+    selected_tree++; 
+    selected_tree %= 2; 
+    ostringstream ss; 
+    ss << selected_tree; 
+    tree_lookup = "Lsystems/l" + ss.str() + ".txt"; 
+    initScene(); 
+    initAnimation();
+    break;
 
   }
 
@@ -990,7 +999,7 @@ static void initGeometry() {
 
 
 static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
-  LSystem* check = new LSystem("Lsystems/l4.txt");
+  LSystem* check = new LSystem(tree_lookup);
   std::string tmp = check->gen_string(check->axiom, 0, num_iterations);
 
   vector< shared_ptr<SgTransformNode> > jointNodes;
@@ -1000,12 +1009,6 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
   int cur_jointId = 0; 
   int highest_jointId = 0; 
   jointIds.push_back(cur_jointId);
-
-  //vector< int > scalePos;
-
-  // vector< int > positions; 
-  // int lastLocation = 0; 
-  // positions.push_back(lastLocation);
 
 
   int rotate = 0; 
@@ -1017,8 +1020,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           color,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
-                                          Cvec3(0.01,0.05,0.01))));
-      int r1 = rand() % 2;
+                                          Cvec3(0.01,0.02,0.01))));
+      int r1 = rand() % 3;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1) {
         jointNodes[cur_jointId]->addChild(shared_ptr<MyShapeNode>(
@@ -1030,7 +1033,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
       }
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.05,0))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.02,0))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1039,7 +1042,22 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     else if (tmp.substr(i, 1) == "+") {
       rotate = 1; 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(-0.01,-0.01,0),Quat::makeZRotation(10))));
+      int r1 = rand() % 3;
+      Cvec3 adjustment = Cvec3(); 
+      Quat rotatation = Quat(); 
+      if (r1 == 0) {
+        rotatation = Quat::makeZRotation(30);
+        adjustment = Cvec3(-0.01,-0.01,0); 
+      }
+      else if (r1 == 1) {
+        rotatation = Quat::makeYRotation(30);
+        adjustment = Cvec3(-0.01,0,0); 
+      }
+      else {
+        rotatation = Quat::makeXRotation(30);
+        adjustment = Cvec3(0,-0.01,0); 
+      }
+      transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1047,7 +1065,22 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     } 
     else if (tmp.substr(i, 1) == "-") {
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0.01,0.01,0),Quat::makeZRotation(-10))));
+      int r1 = rand() % 3;
+      Cvec3 adjustment = Cvec3(); 
+      Quat rotatation = Quat(); 
+      if (r1 == 0) {
+        rotatation = Quat::makeZRotation(-30);
+        adjustment = Cvec3(-0.01,-0.01,0); 
+      }
+      else if (r1 == 1) {
+        rotatation = Quat::makeYRotation(-30);
+        adjustment = Cvec3(0.01,0,0); 
+      }
+      else {
+        rotatation = Quat::makeXRotation(-30);
+        adjustment = Cvec3(0,-0.01,0); 
+      }
+      transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1080,12 +1113,6 @@ static void initScene() {
   g_groundNode->addChild(shared_ptr<MyShapeNode>(
                            new MyShapeNode(g_ground, Cvec3(0.1, 0.95, 0.1))));
 
-  //g_robot1Node.reset(new SgRbtNode(RigTForm(Cvec3(-2, 1, 0))));
-  //g_robot2Node.reset(new SgRbtNode(RigTForm(Cvec3(2, 1, 0))));
-
-  //constructRobot(g_robot1Node, Cvec3(1, 0, 0)); // a Red robot
-  //constructRobot(g_robot2Node, Cvec3(0, 0, 1)); // a Blue robot
-
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
 
@@ -1093,8 +1120,6 @@ static void initScene() {
   constructTree(g_treeNode, Cvec3(0.2,0.1,0.1));
 
   g_world->addChild(g_treeNode);
-  //g_world->addChild(g_robot1Node);
-  //g_world->addChild(g_robot2Node);
 
   g_currentCameraNode = g_skyNode;
 }
