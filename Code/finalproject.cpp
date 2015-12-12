@@ -93,8 +93,8 @@ static bool g_pickingMode = false;
 
 static bool g_playingAnimation = false;
 
-static int num_iterations = 6; 
-static std::string tree_lookup = "Lsystems/l0.txt"; 
+static int num_iterations = 2; 
+static std::string tree_lookup = "Lsystems/l2.txt"; 
 static int selected_tree = 0; 
 
 // -------- Shaders
@@ -926,7 +926,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     break; 
   case '3':
     selected_tree++; 
-    selected_tree %= 2; 
+    selected_tree %= 3; 
     ostringstream ss; 
     ss << selected_tree; 
     tree_lookup = "Lsystems/l" + ss.str() + ".txt"; 
@@ -1020,7 +1020,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           color,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
-                                          Cvec3(0.01,0.02,0.01))));
+                                          Cvec3(0.01,0.05,0.01))));
       int r1 = rand() % 3;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1) {
@@ -1033,7 +1033,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
       }
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.02,0))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.05,0))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1042,7 +1042,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     else if (tmp.substr(i, 1) == "+") {
       rotate = 1; 
       shared_ptr<SgTransformNode> transformNode;
-      int r1 = rand() % 3;
+      int r1 = rand() % 6;
       Cvec3 adjustment = Cvec3(); 
       Quat rotatation = Quat(); 
       if (r1 == 0) {
@@ -1116,7 +1116,7 @@ static void initScene() {
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
 
-  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
+  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, 0, 0))));
   constructTree(g_treeNode, Cvec3(0.2,0.1,0.1));
 
   g_world->addChild(g_treeNode);

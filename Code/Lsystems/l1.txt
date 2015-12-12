@@ -1,3 +1,3 @@
-A
-A, AB
-B, A
+X
+X, F[-X][+X]
+F, FF
