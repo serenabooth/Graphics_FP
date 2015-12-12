@@ -45,8 +45,13 @@
 using namespace std;
 using namespace tr1;
 
+#define MAX(a, b) ((a > b) ? a : b) 
+#define MIN(a, b) ((a < b) ? a : b) 
+
+
 static void initScene(); 
 static void initAnimation();
+static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color);
 // G L O B A L S ///////////////////////////////////////////////////
 
 // --------- IMPORTANT --------------------------------------------------------
@@ -923,10 +928,11 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     // NOT the correct way to do this. 
     initScene(); 
     initAnimation();
+
     break; 
   case '3':
     selected_tree++; 
-    selected_tree %= 3; 
+    selected_tree %= 6; 
     ostringstream ss; 
     ss << selected_tree; 
     tree_lookup = "Lsystems/l" + ss.str() + ".txt"; 
@@ -1010,6 +1016,9 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
   int highest_jointId = 0; 
   jointIds.push_back(cur_jointId);
 
+  vector < double > thickness;
+  double cur_thickness = 0.1; 
+  thickness.push_back(cur_thickness);
 
   int rotate = 0; 
 
@@ -1020,7 +1029,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           color,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
-                                          Cvec3(0.01,0.05,0.01))));
+                                          Cvec3(cur_thickness,0.05,cur_thickness))));
       int r1 = rand() % 3;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1) {
@@ -1088,10 +1097,14 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     } 
     else if (tmp.substr(i, 1) == "[") {
       jointIds.push_back(cur_jointId);
+      cur_thickness = MAX((thickness.back() / 2.0), 0.01); 
+      thickness.push_back(cur_thickness);
     }
     else if (tmp.substr(i, 1) == "]") {
       cur_jointId = jointIds.back();
       jointIds.pop_back(); 
+      cur_thickness = thickness.back(); 
+      thickness.pop_back(); 
     }
     else if (tmp.substr(i, 1) == "X") {
 
