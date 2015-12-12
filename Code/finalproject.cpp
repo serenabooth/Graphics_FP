@@ -70,11 +70,11 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color);
 const bool g_Gl2Compatible = false;
 
 
-static const float g_frustMinFov = 60.0;  // A minimal of 60 degree field of view
+static const float g_frustMinFov = 80.0;  // A minimal of 60 degree field of view
 static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by updateFrustFovY)
 
 static const float g_frustNear = -0.1;    // near plane
-static const float g_frustFar = -50.0;    // far plane
+static const float g_frustFar = -200.0;    // far plane
 static const float g_groundY = -2.0;      // y coordinate of the ground
 static const float g_groundSize = 10.0;   // half the ground length
 
@@ -100,7 +100,7 @@ static bool g_playingAnimation = false;
 
 static int num_iterations = 2; 
 static std::string tree_lookup = "Lsystems/l2.txt"; 
-static int selected_tree = 0; 
+static int selected_tree = 2; 
 
 // -------- Shaders
 static const int g_numShaders = 3, g_numRegularShaders = 2;
@@ -1030,7 +1030,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
                                           Cvec3(cur_thickness,0.05,cur_thickness))));
-      int r1 = rand() % 3;
+      int r1 = rand() % 2;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1) {
         jointNodes[cur_jointId]->addChild(shared_ptr<MyShapeNode>(
@@ -1051,20 +1051,20 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     else if (tmp.substr(i, 1) == "+") {
       rotate = 1; 
       shared_ptr<SgTransformNode> transformNode;
-      int r1 = rand() % 6;
+      int r1 = rand() % 3;
       Cvec3 adjustment = Cvec3(); 
       Quat rotatation = Quat(); 
       if (r1 == 0) {
         rotatation = Quat::makeZRotation(30);
-        adjustment = Cvec3(-0.01,-0.01,0); 
+        adjustment = Cvec3(-1.0/10 * cur_thickness,1 * cur_thickness,0); 
       }
       else if (r1 == 1) {
         rotatation = Quat::makeYRotation(30);
-        adjustment = Cvec3(-0.01,0,0); 
+        adjustment = Cvec3(-1.0/2.0 * cur_thickness,0,0); 
       }
       else {
         rotatation = Quat::makeXRotation(30);
-        adjustment = Cvec3(0,-0.01,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1 * cur_thickness,0); 
       }
       transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
       jointNodes.push_back( transformNode );
@@ -1079,15 +1079,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
       Quat rotatation = Quat(); 
       if (r1 == 0) {
         rotatation = Quat::makeZRotation(-30);
-        adjustment = Cvec3(-0.01,-0.01,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
       }
       else if (r1 == 1) {
         rotatation = Quat::makeYRotation(-30);
-        adjustment = Cvec3(0.01,0,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
       }
       else {
         rotatation = Quat::makeXRotation(-30);
-        adjustment = Cvec3(0,-0.01,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
       }
       transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
       jointNodes.push_back( transformNode );
@@ -1097,7 +1097,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, Cvec3 color) {
     } 
     else if (tmp.substr(i, 1) == "[") {
       jointIds.push_back(cur_jointId);
-      cur_thickness = MAX((thickness.back() / 2.0), 0.01); 
+      cur_thickness = MAX((thickness.back() * 2.0 / 3.0), 0.01); 
       thickness.push_back(cur_thickness);
     }
     else if (tmp.substr(i, 1) == "]") {
@@ -1129,7 +1129,7 @@ static void initScene() {
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
 
-  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, 0, 0))));
+  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
   constructTree(g_treeNode, Cvec3(0.2,0.1,0.1));
 
   g_world->addChild(g_treeNode);
