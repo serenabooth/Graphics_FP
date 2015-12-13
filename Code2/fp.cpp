@@ -106,12 +106,16 @@ static std::string tree_lookup = "Lsystems/l2.txt";
 static int selected_tree = 2; 
 
 // -------- Materials
-static shared_ptr<Material> g_redDiffuseMat,
+static shared_ptr<Material> g_brownDiffuseMat, 
+                            g_greenDiffuseMat,
+                            g_redDiffuseMat,
                             g_blueDiffuseMat,
                             g_bumpFloorMat,
                             g_arcballMat,
                             g_pickingMat,
-                            g_lightMat;
+                            g_lightMat, 
+                            g_barkMat, 
+                            g_grassMat;
 
 shared_ptr<Material> g_overridingMaterial;
 
@@ -317,10 +321,6 @@ static void initLeaf() {
   g_leaf.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
-static void initRobots() {
-  // Init whatever geometry needed for the robots
-}
-
 // takes a projection matrix and send to the the shaders
 inline void sendProjectionMatrix(Uniforms& uniforms, const Matrix4& projMatrix) {
   uniforms.put("uProjMatrix", projMatrix);
@@ -445,7 +445,7 @@ static void drawStuff(bool picking) {
     if (g_currentPickedRbtNode == g_groundNode)
       g_currentPickedRbtNode = shared_ptr<SgRbtNode>(); // set to NULL
 
-    cout << (g_currentPickedRbtNode ? "Part picked" : "No part picked") << endl;
+    //cout << (g_currentPickedRbtNode ? "Part picked" : "No part picked") << endl;
   }
 }
 
@@ -924,6 +924,8 @@ static void initMaterials() {
   // Create some prototype materials
   Material diffuse("./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader");
   Material solid("./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader");
+  Material bark("./shaders/basic-gl3-textured.vshader", "./shaders/diffuse-gl3-textured.fshader");
+  Material grass("./shaders/basic-gl3-textured.vshader", "./shaders/diffuse-gl3-textured.fshader");
 
   // copy diffuse prototype and set red color
   g_redDiffuseMat.reset(new Material(diffuse));
@@ -933,10 +935,22 @@ static void initMaterials() {
   g_blueDiffuseMat.reset(new Material(diffuse));
   g_blueDiffuseMat->getUniforms().put("uColor", Cvec3f(0, 0, 1));
 
+  g_brownDiffuseMat.reset(new Material(diffuse));
+  g_brownDiffuseMat->getUniforms().put("uColor", Cvec3f(0.2, 0.1, 0.1));
+
+  g_greenDiffuseMat.reset(new Material(diffuse));
+  g_greenDiffuseMat->getUniforms().put("uColor", Cvec3f(0,1,0));
+
   // normal mapping material
   g_bumpFloorMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3.fshader"));
   g_bumpFloorMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("Fieldstone.ppm", true)));
   g_bumpFloorMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("FieldstoneNormal.ppm", false)));
+
+  g_barkMat.reset(new Material(bark));
+  g_barkMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("Bark.0004.ppm", true)));
+
+  g_grassMat.reset(new Material(grass));
+  g_grassMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("Grass.0002.ppm", true)));
 
   // copy solid prototype, and set to wireframed rendering
   g_arcballMat.reset(new Material(solid));
@@ -956,77 +970,6 @@ static void initGeometry() {
   initCubes();
   initSphere();
   initLeaf(); 
-  initRobots();
-}
-
-static void constructRobot(shared_ptr<SgTransformNode> base, shared_ptr<Material> material) {
-  const double ARM_LEN = 0.7,
-               ARM_THICK = 0.25,
-               LEG_LEN = 1,
-               LEG_THICK = 0.25,
-               TORSO_LEN = 1.5,
-               TORSO_THICK = 0.25,
-               TORSO_WIDTH = 1,
-               HEAD_SIZE = 0.7;
-  const int NUM_JOINTS = 10,
-            NUM_SHAPES = 10;
-
-  struct JointDesc {
-    int parent;
-    float x, y, z;
-  };
-
-  JointDesc jointDesc[NUM_JOINTS] = {
-    {-1}, // torso
-    {0,  TORSO_WIDTH/2, TORSO_LEN/2, 0}, // upper right arm
-    {0, -TORSO_WIDTH/2, TORSO_LEN/2, 0}, // upper left arm
-    {1,  ARM_LEN, 0, 0}, // lower right arm
-    {2, -ARM_LEN, 0, 0}, // lower left arm
-    {0, TORSO_WIDTH/2-LEG_THICK/2, -TORSO_LEN/2, 0}, // upper right leg
-    {0, -TORSO_WIDTH/2+LEG_THICK/2, -TORSO_LEN/2, 0}, // upper left leg
-    {5, 0, -LEG_LEN, 0}, // lower right leg
-    {6, 0, -LEG_LEN, 0}, // lower left
-    {0, 0, TORSO_LEN/2, 0} // head
-  };
-
-  struct ShapeDesc {
-    int parentJointId;
-    float x, y, z, sx, sy, sz;
-    shared_ptr<Geometry> geometry;
-  };
-
-  ShapeDesc shapeDesc[NUM_SHAPES] = {
-    {0, 0,         0, 0, TORSO_WIDTH, TORSO_LEN, TORSO_THICK, g_cube}, // torso
-    {1, ARM_LEN/2, 0, 0, ARM_LEN/2, ARM_THICK/2, ARM_THICK/2, g_sphere}, // upper right arm
-    {2, -ARM_LEN/2, 0, 0, ARM_LEN/2, ARM_THICK/2, ARM_THICK/2, g_sphere}, // upper left arm
-    {3, ARM_LEN/2, 0, 0, ARM_LEN, ARM_THICK, ARM_THICK, g_cube}, // lower right arm
-    {4, -ARM_LEN/2, 0, 0, ARM_LEN, ARM_THICK, ARM_THICK, g_cube}, // lower left arm
-    {5, 0, -LEG_LEN/2, 0, LEG_THICK/2, LEG_LEN/2, LEG_THICK/2, g_sphere}, // upper right leg
-    {6, 0, -LEG_LEN/2, 0, LEG_THICK/2, LEG_LEN/2, LEG_THICK/2, g_sphere}, // upper left leg
-    {7, 0, -LEG_LEN/2, 0, LEG_THICK, LEG_LEN, LEG_THICK, g_cube}, // lower right leg
-    {8, 0, -LEG_LEN/2, 0, LEG_THICK, LEG_LEN, LEG_THICK, g_cube}, // lower left leg
-    {9, 0, HEAD_SIZE/2 * 1.5, 0, HEAD_SIZE/2, HEAD_SIZE/2, HEAD_SIZE/2, g_sphere}, // head
-  };
-
-  shared_ptr<SgTransformNode> jointNodes[NUM_JOINTS];
-
-  for (int i = 0; i < NUM_JOINTS; ++i) {
-    if (jointDesc[i].parent == -1)
-      jointNodes[i] = base;
-    else {
-      jointNodes[i].reset(new SgRbtNode(RigTForm(Cvec3(jointDesc[i].x, jointDesc[i].y, jointDesc[i].z))));
-      jointNodes[jointDesc[i].parent]->addChild(jointNodes[i]);
-    }
-  }
-  for (int i = 0; i < NUM_SHAPES; ++i) {
-    shared_ptr<SgGeometryShapeNode> shape(
-      new MyShapeNode(shapeDesc[i].geometry,
-                      material, // USE MATERIAL as opposed to color
-                      Cvec3(shapeDesc[i].x, shapeDesc[i].y, shapeDesc[i].z),
-                      Cvec3(0, 0, 0),
-                      Cvec3(shapeDesc[i].sx, shapeDesc[i].sy, shapeDesc[i].sz)));
-    jointNodes[shapeDesc[i].parentJointId]->addChild(shape);
-  }
 }
 
 static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material> trunk_material, shared_ptr<Material> leaf_material) {
@@ -1079,16 +1022,20 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       int r1 = rand() % 3;
       Cvec3 adjustment = Cvec3(); 
       Quat rotatation = Quat(); 
+      int r2 = rand() % 2;
+      if (r2 == 0) {
+        r2 = -1; 
+      } 
       if (r1 == 0) {
-        rotatation = Quat::makeZRotation(30);
+        rotatation = Quat::makeZRotation(30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/10 * cur_thickness,1 * cur_thickness,0); 
       }
       else if (r1 == 1) {
-        rotatation = Quat::makeYRotation(30);
+        rotatation = Quat::makeYRotation(30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/2.0 * cur_thickness,0,0); 
       }
       else {
-        rotatation = Quat::makeXRotation(30);
+        rotatation = Quat::makeXRotation(30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/20 * cur_thickness,-1 * cur_thickness,0); 
       }
       transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
@@ -1102,16 +1049,20 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       int r1 = rand() % 3;
       Cvec3 adjustment = Cvec3(); 
       Quat rotatation = Quat(); 
+      int r2 = rand() % 2;
+      if (r2 == 0) {
+        r2 = -1; 
+      } 
       if (r1 == 0) {
-        rotatation = Quat::makeZRotation(-30);
+        rotatation = Quat::makeZRotation(-30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
       }
       else if (r1 == 1) {
-        rotatation = Quat::makeYRotation(-30);
+        rotatation = Quat::makeYRotation(-30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
       }
       else {
-        rotatation = Quat::makeXRotation(-30);
+        rotatation = Quat::makeXRotation(-30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
       }
       transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
@@ -1149,7 +1100,7 @@ static void initScene() {
 
   g_groundNode.reset(new SgRbtNode());
   g_groundNode->addChild(shared_ptr<MyShapeNode>(
-                           new MyShapeNode(g_ground, g_bumpFloorMat, Cvec3(0, g_groundY, 0))));
+                           new MyShapeNode(g_ground, g_grassMat, Cvec3(0, g_groundY, 0))));
 
   g_light1Node.reset(new SgRbtNode(RigTForm(g_light1, Quat())));
   g_light2Node.reset(new SgRbtNode(RigTForm(g_light2, Quat())));
@@ -1166,15 +1117,13 @@ static void initScene() {
   // constructRobot(g_robot2Node, g_blueDiffuseMat); // a Blue robot
 
   g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
-  constructTree(g_treeNode, g_redDiffuseMat, g_blueDiffuseMat);
+  constructTree(g_treeNode, g_barkMat, g_greenDiffuseMat);
 
 
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
   g_world->addChild(g_light1Node);
   g_world->addChild(g_light2Node);
-  // g_world->addChild(g_robot1Node);
-  // g_world->addChild(g_robot2Node);
   g_world->addChild(g_treeNode);
 
   g_currentCameraNode = g_skyNode;
