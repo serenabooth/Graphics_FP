@@ -418,10 +418,10 @@ static void drawStuff(bool picking) {
   const RigTForm invEyeRbt = inv(eyeRbt);
 
   const Cvec3 light1 = getPathAccumRbt(g_world, g_light1Node).getTranslation();
-  //const Cvec3 light2 = getPathAccumRbt(g_world, g_light2Node).getTranslation();
+  const Cvec3 light2 = getPathAccumRbt(g_world, g_light2Node).getTranslation();
 
   uniforms.put("uLight", Cvec3(invEyeRbt * Cvec4(light1, 1)));
-  //uniforms.put("uLight2", Cvec3(invEyeRbt * Cvec4(light2, 1)));
+  uniforms.put("uLight2", Cvec3(invEyeRbt * Cvec4(light2, 1)));
 
   if (!picking) {
     Drawer drawer(invEyeRbt, uniforms);
@@ -946,9 +946,11 @@ static void initMaterials() {
   g_bumpFloorMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/Fieldstone.ppm", true)));
   g_bumpFloorMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/FieldstoneNormal.ppm", false)));
 
-  g_barkMat.reset(new Material(bark));
-  g_barkMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/Bark.0004.ppm", true)));
-
+  //g_barkMat.reset(new Material(bark));
+  g_barkMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3-less-shiny.fshader"));
+  g_barkMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745.ppm", true)));
+  g_barkMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745-normal.ppm", false)));
+  
   g_grassMat.reset(new Material(grass));
   //g_grassMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3.fshader"));
   //g_grassMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("textures/Grass.0002.ppm", true)));
@@ -1106,12 +1108,12 @@ static void initScene() {
                            new MyShapeNode(g_ground, g_grassMat, Cvec3(0, g_groundY, 0))));
 
   g_light1Node.reset(new SgRbtNode(RigTForm(g_light1, Quat())));
-  //g_light2Node.reset(new SgRbtNode(RigTForm(g_light2, Quat())));
+  g_light2Node.reset(new SgRbtNode(RigTForm(g_light2, Quat())));
 
   g_light1Node->addChild(shared_ptr<MyShapeNode>(
                           new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
-  //g_light2Node->addChild(shared_ptr<MyShapeNode>(
-  //                        new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
+  g_light2Node->addChild(shared_ptr<MyShapeNode>(
+                          new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
 
   // g_robot1Node.reset(new SgRbtNode(RigTForm(Cvec3(-2, 1, 0))));
   // g_robot2Node.reset(new SgRbtNode(RigTForm(Cvec3(2, 1, 0))));
@@ -1126,7 +1128,7 @@ static void initScene() {
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
   g_world->addChild(g_light1Node);
-  //g_world->addChild(g_light2Node);
+  g_world->addChild(g_light2Node);
   g_world->addChild(g_treeNode);
 
   g_currentCameraNode = g_skyNode;
