@@ -79,7 +79,7 @@ static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by upda
 static const float g_frustNear = -0.1;    // near plane
 static const float g_frustFar = -50.0;    // far plane
 static const float g_groundY = -2.0;      // y coordinate of the ground
-static const float g_groundSize = 10.0;   // half the ground length
+static const float g_groundSize = 20.0;   // half the ground length
 
 enum SkyMode {WORLD_SKY=0, SKY_SKY=1};
 
@@ -115,7 +115,8 @@ static shared_ptr<Material> g_brownDiffuseMat,
                             g_pickingMat,
                             g_lightMat, 
                             g_barkMat, 
-                            g_grassMat;
+                            g_grassMat, 
+                            g_leafMat;
 
 shared_ptr<Material> g_overridingMaterial;
 
@@ -123,7 +124,7 @@ typedef SgGeometryShapeNode MyShapeNode;
 
 
 // Vertex buffer and index buffer associated with the ground and cube geometry
-static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf;
+static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf, g_cylinder;
 
 // --------- Scene
 
@@ -309,6 +310,18 @@ static void initSphere() {
   makeSphere(1, 20, 10, vtx.begin(), idx.begin());
   g_sphere.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
+
+static void initCylinder() {
+  int ibLen, vbLen;
+  getSphereVbIbLen(20, 10, vbLen, ibLen);
+
+  // Temporary storage for sphere Geometry
+  vector<VertexPNTBX> vtx(vbLen);
+  vector<unsigned short> idx(ibLen);
+  makeCylinder(1, 20, 10, vtx.begin(), idx.begin());
+  g_cylinder.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
+}
+
 
 static void initLeaf() {
   int ibLen, vbLen;
@@ -950,6 +963,10 @@ static void initMaterials() {
   g_barkMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3-less-shiny.fshader"));
   g_barkMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745.ppm", true)));
   g_barkMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745-normal.ppm", false)));
+
+  g_leafMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3-less-shiny.fshader"));
+  g_leafMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/leavesTextureNo9851_1024x768.ppm", true)));
+  g_leafMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/leavesTextureNo9851_1024x768.ppm", false)));
   
   g_grassMat.reset(new Material(grass));
   //g_grassMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3.fshader"));
@@ -975,6 +992,7 @@ static void initGeometry() {
   initCubes();
   initSphere();
   initLeaf(); 
+  initCylinder(); 
 }
 
 static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material> trunk_material, shared_ptr<Material> leaf_material) {
@@ -997,22 +1015,36 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 
   for (int i = 0; i < tmp.length(); ++i) {
     if (tmp.substr(i, 1) == "F") {
-      jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+
+      int r3 = rand() % 3; 
+      // if (rand() % 2 == 0) 
+      //   r3 *= -1; 
+      // if (cur_thickness > 0.025) {
+      // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+      //                      new MyShapeNode(g_cylinder,
+      //                                     trunk_material,
+      //                                     Cvec3(0,0,0), //lastLocation.getTranslation(),
+      //                                     Cvec3(90, 0, 0),
+      //                                     Cvec3(cur_thickness,0.05,cur_thickness))));
+      // }
+      // else {
+        jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
                            new MyShapeNode(g_cube,
                                           trunk_material,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
                                           Cvec3(cur_thickness,0.05,cur_thickness))));
+      //}
       int r1 = rand() % 2;
       int r2 = rand() % 2 - 1; 
-      // if (r1 == 0 && rotate == 1) {
-      //   jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-      //                      new MyShapeNode(g_leaf,
-      //                                     leaf_material,
-      //                                     Cvec3(0.02,0,0), //lastLocation.getTranslation(),
-      //                                     Cvec3(rand() % 15, 90 + rand() % 15, 90+ rand() % 15 ),
-      //                                     Cvec3(0.02,0.02,0.02))));
-      // }
+      if (r1 == 0 && rotate == 1) {
+        jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+                           new MyShapeNode(g_cube,
+                                          leaf_material,
+                                          Cvec3(0.02,0,0), //lastLocation.getTranslation(),
+                                          Cvec3(rand() % 15, 90 + rand() % 15, 90+ rand() % 15 ),
+                                          Cvec3(0.1,0.2,0.001))));
+      }
 
       shared_ptr<SgTransformNode> transformNode;
       transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.05,0))));
@@ -1033,15 +1065,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       } 
       if (r1 == 0) {
         rotatation = Quat::makeZRotation(30 + r2 * (rand() % 5));
-        adjustment = Cvec3(-1.0/10 * cur_thickness,1 * cur_thickness,0); 
+        adjustment = Cvec3(-1.0/10 * cur_thickness,1.0/2.0 * cur_thickness,-1.0/10 * cur_thickness); 
       }
       else if (r1 == 1) {
         rotatation = Quat::makeYRotation(30 + r2 * (rand() % 5));
-        adjustment = Cvec3(-1.0/2.0 * cur_thickness,0,0); 
+        adjustment = Cvec3(-1.0/2.0 * cur_thickness,0,-1.0/10 * cur_thickness); 
       }
       else {
         rotatation = Quat::makeXRotation(30 + r2 * (rand() % 5));
-        adjustment = Cvec3(-1.0/20 * cur_thickness,-1 * cur_thickness,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1 * cur_thickness,-1.0/10 * cur_thickness); 
       }
       transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
       jointNodes.push_back( transformNode );
@@ -1060,15 +1092,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       } 
       if (r1 == 0) {
         rotatation = Quat::makeZRotation(-30 + r2 * (rand() % 5));
-        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,-1.0/20 * cur_thickness); 
       }
       else if (r1 == 1) {
         rotatation = Quat::makeYRotation(-30 + r2 * (rand() % 5));
-        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,-1.0/20 * cur_thickness); 
       }
       else {
         rotatation = Quat::makeXRotation(-30 + r2 * (rand() % 5));
-        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,0); 
+        adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,-1.0/20 * cur_thickness); 
       }
       transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
       jointNodes.push_back( transformNode );
@@ -1115,14 +1147,8 @@ static void initScene() {
   g_light2Node->addChild(shared_ptr<MyShapeNode>(
                           new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
 
-  // g_robot1Node.reset(new SgRbtNode(RigTForm(Cvec3(-2, 1, 0))));
-  // g_robot2Node.reset(new SgRbtNode(RigTForm(Cvec3(2, 1, 0))));
-
-  // constructRobot(g_robot1Node, g_redDiffuseMat); // a Red robot
-  // constructRobot(g_robot2Node, g_blueDiffuseMat); // a Blue robot
-
   g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
-  constructTree(g_treeNode, g_barkMat, g_greenDiffuseMat);
+  constructTree(g_treeNode, g_barkMat, g_leafMat);
 
 
   g_world->addChild(g_skyNode);

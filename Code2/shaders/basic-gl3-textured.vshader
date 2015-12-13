@@ -8,7 +8,6 @@ in vec3 aPosition;
 in vec3 aNormal;
 in vec2 aTexCoord;
 
-
 out vec2 vTexCoord;
 out vec3 vNormal;
 out vec3 vPosition;
