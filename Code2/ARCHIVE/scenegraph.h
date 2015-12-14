@@ -14,6 +14,7 @@
 #include "uniforms.h"
 #include "geometry.h"
 #include "asstcommon.h"
+#include "material.h"
 
 class SgNodeVisitor;
 

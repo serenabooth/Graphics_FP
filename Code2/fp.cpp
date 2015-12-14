@@ -45,6 +45,8 @@
 #include "geometry.h"
 #include "material.h"
 #include "renderstates.h"
+
+#include "mesh.h"
 using namespace std;
 using namespace tr1;
 
@@ -71,7 +73,10 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 // loaded
 // ----------------------------------------------------------------------------
 const bool g_Gl2Compatible = false;
+static shared_ptr<Material> g_cylinderMat; // for the cylinder
 
+static shared_ptr<SimpleGeometryPN> g_cylinderGeometry;
+static Mesh g_cylinderMesh; 
 
 static const float g_frustMinFov = 60.0;  // A minimal of 60 degree field of view
 static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by updateFrustFovY)
@@ -131,7 +136,7 @@ static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf, g_cylinder;
 Cvec3 g_light1(2.0, 3.0, 5.0), g_light2(2, 3.0, -5.0);  // define two lights positions in world space
 
 static shared_ptr<SgRootNode> g_world;
-static shared_ptr<SgRbtNode> g_skyNode, g_groundNode, g_light1Node, g_light2Node, g_treeNode;
+static shared_ptr<SgRbtNode> g_skyNode, g_groundNode, g_light1Node, g_light2Node, g_treeNode, g_cylinderNode;
 
 static shared_ptr<SgRbtNode> g_currentCameraNode;
 static shared_ptr<SgRbtNode> g_currentPickedRbtNode;
@@ -276,6 +281,40 @@ static int g_curKeyFrameNum;
 
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
 
+static void initCylinderMeshes() {
+  g_cylinderMesh.load("Cylinder_test.mesh");
+  vector<VertexPN> vertice_iter; 
+
+  // TODO: Init the per vertex normal of g_bunnyMesh, using codes from asst7
+  for (int i = 0; i < g_cylinderMesh.getNumVertices(); ++i) {
+    g_cylinderMesh.getVertex(i).setNormal(Cvec3());
+  }
+
+  for (int i = 0; i < g_cylinderMesh.getNumFaces(); ++i) {
+     Mesh::Face face_3_verts = g_cylinderMesh.getFace(i);
+     Cvec3 normal = face_3_verts.getNormal(); 
+
+     for (int j = 0; j < face_3_verts.getNumVertices(); ++j) {
+       Mesh::Vertex cur_vertex = face_3_verts.getVertex(j);
+       cur_vertex.setNormal(normalize(cur_vertex.getNormal() + normal));
+     }
+  } 
+
+  // TODO: Initialize g_bunnyGeometry from g_bunnyMesh, similar to
+  // what you did for asst7 ...
+  for (int i = 0; i < g_cylinderMesh.getNumFaces(); ++i) {
+    Mesh::Face face_3_verts = g_cylinderMesh.getFace(i);
+
+    for (int j = 0; j < face_3_verts.getNumVertices(); ++j) {
+      const Mesh::Vertex v = face_3_verts.getVertex(j);
+
+      vertice_iter.push_back(VertexPN(v.getPosition(), v.getNormal()));             
+    }
+  }
+  g_cylinderGeometry.reset(new SimpleGeometryPN()); 
+  g_cylinderGeometry->upload(&vertice_iter[0], vertice_iter.size());
+}
+
 static void initGround() {
   int ibLen, vbLen;
   getPlaneVbIbLen(vbLen, ibLen);
@@ -311,28 +350,28 @@ static void initSphere() {
   g_sphere.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
-static void initCylinder() {
-  int ibLen, vbLen;
-  getSphereVbIbLen(20, 10, vbLen, ibLen);
+// static void initCylinder() {
+//   int ibLen, vbLen;
+//   getSphereVbIbLen(20, 20, vbLen, ibLen);
 
-  // Temporary storage for sphere Geometry
-  vector<VertexPNTBX> vtx(vbLen);
-  vector<unsigned short> idx(ibLen);
-  makeCylinder(1, 20, 10, vtx.begin(), idx.begin());
-  g_cylinder.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
-}
+//   // Temporary storage for sphere Geometry
+//   vector<VertexPNTBX> vtx(vbLen);
+//   vector<unsigned short> idx(ibLen);
+//   makeCylinder(1, 20, 20, vtx.begin(), idx.begin());
+//   g_cylinder.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
+// }
 
 
-static void initLeaf() {
-  int ibLen, vbLen;
-  getLeafVbIbLen(20, 10, vbLen, ibLen);
+// static void initLeaf() {
+//   int ibLen, vbLen;
+//   getLeafVbIbLen(20, 10, vbLen, ibLen);
 
-  // Temporary storage for sphere geometry
-  vector<VertexPNTBX> vtx(vbLen);
-  vector<unsigned short> idx(ibLen);
-  makeLeaf(1, 20, 10, vtx.begin(), idx.begin());
-  g_leaf.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
-}
+//   // Temporary storage for sphere geometry
+//   vector<VertexPNTBX> vtx(vbLen);
+//   vector<unsigned short> idx(ibLen);
+//   makeLeaf(1, 20, 10, vtx.begin(), idx.begin());
+//   g_leaf.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
+// }
 
 // takes a projection matrix and send to the the shaders
 inline void sendProjectionMatrix(Uniforms& uniforms, const Matrix4& projMatrix) {
@@ -983,6 +1022,10 @@ static void initMaterials() {
   g_lightMat.reset(new Material(solid));
   g_lightMat->getUniforms().put("uColor", Cvec3f(1, 1, 1));
 
+  g_cylinderMat.reset(new Material("./shaders/basic-gl3.vshader", "./shaders/bunny-gl3.fshader"));
+  g_cylinderMat->getUniforms()
+  .put("uColorAmbient", Cvec3f(0.45f, 0.3f, 0.3f))
+  .put("uColorDiffuse", Cvec3f(0.2f, 0.2f, 0.2f));
   // pick shader
   g_pickingMat.reset(new Material("./shaders/basic-gl3.vshader", "./shaders/pick-gl3.fshader"));
 };
@@ -991,8 +1034,9 @@ static void initGeometry() {
   initGround();
   initCubes();
   initSphere();
-  initLeaf(); 
-  initCylinder(); 
+  //initLeaf(); 
+  //initCylinder(); 
+  initCylinderMeshes();
 }
 
 static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material> trunk_material, shared_ptr<Material> leaf_material) {
@@ -1017,24 +1061,24 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
     if (tmp.substr(i, 1) == "F") {
 
       int r3 = rand() % 3; 
-      // if (rand() % 2 == 0) 
-      //   r3 *= -1; 
-      // if (cur_thickness > 0.025) {
-      // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-      //                      new MyShapeNode(g_cylinder,
-      //                                     trunk_material,
-      //                                     Cvec3(0,0,0), //lastLocation.getTranslation(),
-      //                                     Cvec3(90, 0, 0),
-      //                                     Cvec3(cur_thickness,0.05,cur_thickness))));
-      // }
-      // else {
+      if (rand() % 2 == 0) 
+        r3 *= -1; 
+      if (cur_thickness > 0.025) {
+      jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+                           new MyShapeNode(g_cylinder,
+                                          trunk_material,
+                                          Cvec3(0,0,0), //lastLocation.getTranslation(),
+                                          Cvec3(90, 0, 0),
+                                          Cvec3(cur_thickness,0.05,cur_thickness))));
+      }
+      else {
         jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
                            new MyShapeNode(g_cube,
                                           trunk_material,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
                                           Cvec3(cur_thickness,0.05,cur_thickness))));
-      //}
+      }
       int r1 = rand() % 2;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1) {
@@ -1147,16 +1191,19 @@ static void initScene() {
   g_light2Node->addChild(shared_ptr<MyShapeNode>(
                           new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
 
-  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
-  constructTree(g_treeNode, g_barkMat, g_leafMat);
+  g_cylinderNode.reset(new SgRbtNode());
+  g_cylinderNode->addChild(shared_ptr<MyShapeNode>(new MyShapeNode(g_cylinderGeometry, g_cylinderMat)));
+
+  //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
+  //constructTree(g_treeNode, g_barkMat, g_greenDiffuseMat);
 
 
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
   g_world->addChild(g_light1Node);
   g_world->addChild(g_light2Node);
-  g_world->addChild(g_treeNode);
-
+  //g_world->addChild(g_treeNode);
+  g_world->addChild(g_cylinderNode);
   g_currentCameraNode = g_skyNode;
 }
 
