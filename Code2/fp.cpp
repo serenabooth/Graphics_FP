@@ -1025,7 +1025,7 @@ static void initMaterials() {
   g_cylinderMat.reset(new Material("./shaders/basic-gl3.vshader", "./shaders/bunny-gl3.fshader"));
   g_cylinderMat->getUniforms()
   .put("uColorAmbient", Cvec3f(0.45f, 0.3f, 0.3f))
-  .put("uColorDiffuse", Cvec3f(0.2f, 0.2f, 0.2f));
+  .put("uColorDiffuse", Cvec3f(0.01f, 0.01f, 0.01f));
   // pick shader
   g_pickingMat.reset(new Material("./shaders/basic-gl3.vshader", "./shaders/pick-gl3.fshader"));
 };
@@ -1065,8 +1065,9 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
         r3 *= -1; 
       if (cur_thickness > 0.025) {
       jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-                           new MyShapeNode(g_cylinder,
-                                          trunk_material,
+                           new MyShapeNode(g_cylinderGeometry, 
+                                          g_cylinderMat,
+                                          //trunk_material,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(90, 0, 0),
                                           Cvec3(cur_thickness,0.05,cur_thickness))));
@@ -1191,19 +1192,19 @@ static void initScene() {
   g_light2Node->addChild(shared_ptr<MyShapeNode>(
                           new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
 
-  g_cylinderNode.reset(new SgRbtNode());
-  g_cylinderNode->addChild(shared_ptr<MyShapeNode>(new MyShapeNode(g_cylinderGeometry, g_cylinderMat)));
+  //g_cylinderNode.reset(new SgRbtNode());
+  //g_cylinderNode->addChild(shared_ptr<MyShapeNode>(new MyShapeNode(g_cylinderGeometry, g_cylinderMat)));
 
-  //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
-  //constructTree(g_treeNode, g_barkMat, g_greenDiffuseMat);
+  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, 0))));
+  constructTree(g_treeNode, g_barkMat, g_greenDiffuseMat);
 
 
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
   g_world->addChild(g_light1Node);
   g_world->addChild(g_light2Node);
-  //g_world->addChild(g_treeNode);
-  g_world->addChild(g_cylinderNode);
+  g_world->addChild(g_treeNode);
+  //g_world->addChild(g_cylinderNode);
   g_currentCameraNode = g_skyNode;
 }
 
