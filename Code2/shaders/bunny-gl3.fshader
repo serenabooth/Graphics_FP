@@ -1,22 +1,35 @@
 #version 130
 
-uniform vec3 uLight, uLight2;
-uniform vec3 uColorAmbient, uColorDiffuse;
+uniform sampler2D uTexShell;
+
+uniform vec3 uLight;
+
+//uniform float uAlphaExponent;
 
 in vec3 vNormal;
 in vec3 vPosition;
+in vec2 vTexCoord;
 
 out vec4 fragColor;
 
 void main() {
-  vec3 tolight = normalize(uLight - vPosition);
-  vec3 tolight2 = normalize(uLight2 - vPosition);
   vec3 normal = normalize(vNormal);
+  vec3 toLight = normalize(uLight - vPosition);
 
-  float diffuse = max(0.0, dot(normal, tolight));
-  diffuse += max(0.0, dot(normal, tolight2));
+  vec3 toP = -normalize(vPosition);
 
-  vec3 intensity = uColorAmbient + uColorDiffuse * diffuse;
+  vec3 h = normalize(toP + toLight);
 
-  fragColor = vec4(intensity, 1.0);
+  float u = dot(normal, toLight);
+  float v = dot(normal, toP);
+  u = 1.0 - u*u;
+  v = pow(1.0 - v*v, 16.0);
+
+  float r = 0.009+ 0.43 * u + 0.25* v;
+  float g = 0.009+ 0.13* u + 0.21* v;
+  float b = 0.009+ 0.02 * u + 0.21* v;
+
+  float alpha = pow(texture(uTexShell, vTexCoord).r, 1);
+
+  fragColor = vec4(r, g, b, alpha);
 }

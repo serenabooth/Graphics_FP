@@ -4,7 +4,7 @@ uniform sampler2D uTexShell;
 
 uniform vec3 uLight;
 
-uniform float uAlphaExponent;
+//uniform float uAlphaExponent;
 
 in vec3 vNormal;
 in vec3 vPosition;
@@ -29,7 +29,7 @@ void main() {
   float g = 0.009+ 0.13* u + 0.21* v;
   float b = 0.009+ 0.02 * u + 0.21* v;
 
-  float alpha = pow(texture(uTexShell, vTexCoord).r, uAlphaExponent);
+  float alpha = pow(texture(uTexShell, vTexCoord).r, 1);
 
-  fragColor = vec4(r, g, b, alpha);
+  fragColor = vec4(r, g, b, 1);
 }
