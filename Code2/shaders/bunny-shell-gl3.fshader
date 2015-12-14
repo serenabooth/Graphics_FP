@@ -3,12 +3,15 @@
 uniform sampler2D uTexShell;
 
 uniform vec3 uLight;
+uniform vec3 uLight2;
 
 //uniform float uAlphaExponent;
 
 in vec3 vNormal;
 in vec3 vPosition;
 in vec2 vTexCoord;
+in mat3 vNTMat;  // normal matrix * tangent frame matrix
+in vec3 vEyePos; // position in eye space
 
 out vec4 fragColor;
 
@@ -29,7 +32,13 @@ void main() {
   float g = 0.009+ 0.13* u + 0.21* v;
   float b = 0.009+ 0.02 * u + 0.21* v;
 
-  float alpha = pow(texture(uTexShell, vTexCoord).r, 1);
+  float alpha = texture(uTexShell, vTexCoord).g;
 
-  fragColor = vec4(r, g, b, 1);
+  if (alpha > 0.4) {
+    fragColor = vec4(r, g, b, 0);
+  }
+  else {
+    fragColor = vec4(texture(uTexShell, vTexCoord).r,texture(uTexShell, vTexCoord).g,texture(uTexShell, vTexCoord).b,1);
+  }
+  
 }

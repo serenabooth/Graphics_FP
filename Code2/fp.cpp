@@ -5,7 +5,7 @@
 //   Professor Steven Gortler
 //
 ////////////////////////////////////////////////////////////////////////
-
+#include <queue>
 #include <cstddef>
 #include <vector>
 #include <list>
@@ -1009,10 +1009,13 @@ static void initMaterials() {
   g_barkMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745.ppm", true)));
   g_barkMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745-normal.ppm", false)));
 
-  g_leafMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3-less-shiny.fshader"));
-  g_leafMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/leavesTextureNo9851_1024x768.ppm", true)));
-  g_leafMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/leavesTextureNo9851_1024x768.ppm", false)));
-  
+  g_leafMat.reset(new Material("./shaders/leaf.vshader", "./shaders/bunny-shell-gl3.fshader"));
+  g_leafMat->getUniforms().put("uTexShell", shared_ptr<ImageTexture>(new ImageTexture("./textures/leaf.ppm", true)));
+  g_leafMat->getRenderStates()
+  .blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) // set blending mode
+  .enable(GL_BLEND) // enable blending
+  .disable(GL_CULL_FACE); // disable culling
+
   g_grassMat.reset(new Material(grass));
   //g_grassMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3.fshader"));
   //g_grassMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("textures/Grass.0002.ppm", true)));
@@ -1065,6 +1068,9 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   double cur_thickness = 0.1; 
   thickness.push_back(cur_thickness);
 
+  std::priority_queue<int> leavesToAdd;
+  leavesToAdd.push(0);
+
   int rotate = 0; 
 
   for (int i = 0; i < tmp.length(); ++i) {
@@ -1076,9 +1082,9 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       if (cur_thickness > 0.025) {
       jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
                            new MyShapeNode(g_cylinderGeometry, 
-                                          //g_cylinderMat,
+                                          g_cylinderMat,
                                           //g_grassMat,
-                                          g_brownDiffuseMat,
+                                          //g_brownDiffuseMat,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(90, 0, 0),
                                           Cvec3(cur_thickness,0.05,cur_thickness))));
@@ -1093,14 +1099,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       }
       int r1 = rand() % 2;
       int r2 = rand() % 2 - 1; 
-      // if (r1 == 0 && rotate == 1) {
-      //   jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-      //                      new MyShapeNode(g_cube,
-      //                                     leaf_material,
-      //                                     Cvec3(0.02,0,0), //lastLocation.getTranslation(),
-      //                                     Cvec3(rand() % 15, 90 + rand() % 15, 90+ rand() % 15 ),
-      //                                     Cvec3(0.1,0.2,0.001))));
-      // }
+      if (r1 == 0 && rotate == 1 && cur_thickness < 0.025) {
+        leavesToAdd.push(cur_jointId);
+        // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+        //                    new MyShapeNode(g_cube,
+        //                                   leaf_material,
+        //                                   Cvec3(0,0,0), //lastLocation.getTranslation(),
+        //                                   Cvec3(rand() % 15, 0,0 ),
+        //                                   Cvec3(0.1,0.2,0.001))));
+      }
 
       shared_ptr<SgTransformNode> transformNode;
       transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.05,0))));
@@ -1183,12 +1190,27 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
     }
 
   }
+
+      while (!leavesToAdd.empty()) {
+      //cout << "leaf!" << endl;
+      int leaf_id = leavesToAdd.top(); 
+      leavesToAdd.pop(); 
+
+      jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(
+                           new MyShapeNode(g_cube,
+                                          leaf_material,
+                                          Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
+                                          Cvec3(15,15,90),
+                                          Cvec3(0.1, 0.1,0.00001))));
+    }
+
+
 }
 
 static void initScene() {
   g_world.reset(new SgRootNode());
 
-  g_skyNode.reset(new SgRbtNode(RigTForm(Cvec3(0.0, 0.25, 4.0))));
+  g_skyNode.reset(new SgRbtNode(RigTForm(Cvec3(0.0, 0.25, 6.0))));
 
 
   g_groundNode.reset(new SgRbtNode());
@@ -1207,7 +1229,7 @@ static void initScene() {
   //g_cylinderNode->addChild(shared_ptr<MyShapeNode>(new MyShapeNode(g_cylinderGeometry, g_cylinderMat)));
 
   g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));
-  constructTree(g_treeNode, g_barkMat, g_greenDiffuseMat);
+  constructTree(g_treeNode, g_barkMat, g_leafMat);
 
 
   g_world->addChild(g_skyNode);
