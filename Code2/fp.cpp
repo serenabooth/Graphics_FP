@@ -72,6 +72,11 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 // To complete the assignment you only need to edit the shader files that get
 // loaded
 // ----------------------------------------------------------------------------
+static bool animating = false; 
+static int animate_level = 0; 
+
+static shared_ptr<SgTransformNode> tree_base; 
+
 const bool g_Gl2Compatible = false;
 static shared_ptr<Material> g_cylinderMat; // for the cylinder
 
@@ -113,6 +118,9 @@ static int selected_tree = 2;
 static double branch_thickness = 1.0; 
 static double branch_length = 1.0; 
 
+static int leaves_on = 0; 
+static int tree_height = 0; 
+
 // -------- Materials
 static shared_ptr<Material> g_brownDiffuseMat, 
                             g_greenDiffuseMat,
@@ -136,7 +144,7 @@ static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf, g_cylinder;
 
 // --------- Scene
 
-Cvec3 g_light1(2.0, 3.0, -5.0), g_light2(2, -3.0, -5.0);  // define two lights positions in world space
+Cvec3 g_light1(2.0, 3.0, -10.0), g_light2(2, -3.0, -5.0);  // define two lights positions in world space
 
 static shared_ptr<SgRootNode> g_world;
 static shared_ptr<SgRbtNode> g_skyNode, g_groundNode, g_light1Node, g_light2Node, g_treeNode, g_cylinderNode;
@@ -219,7 +227,7 @@ public:
     const int integralT = int(floor(t));
     const double fraction = t - integralT;
 
-    KeyFrameIter f1 = getNthKeyFrame(integralT); 
+    KeyFrameIter f1 = getNthKeyFrame(integralT);
     KeyFrameIter f0 = f1; 
     KeyFrameIter f2 = f1; 
     KeyFrameIter f3 = f1; 
@@ -467,6 +475,7 @@ static void drawArcBall(Uniforms& uniforms) {
 }
 
 static void drawStuff(bool picking) {
+  cout << "drawing stuff! " << animating << endl; 
   // Declare an empty uniforms
   Uniforms uniforms;
 
@@ -487,12 +496,20 @@ static void drawStuff(bool picking) {
   uniforms.put("uLight", Cvec3(invEyeRbt * Cvec4(light1, 1)));
   uniforms.put("uLight2", Cvec3(invEyeRbt * Cvec4(light2, 1)));
 
-  if (!picking) {
+  if (!picking && !animating) {
     Drawer drawer(invEyeRbt, uniforms);
     g_world->accept(drawer);
 
     if (g_displayArcball && shouldUseArcball())
       drawArcBall(uniforms);
+  }
+  else if (animating) {
+          cout << "Drawing iteration " << animate_level << endl; 
+
+    TreeDrawer drawer(invEyeRbt, uniforms, animate_level);
+    g_world->accept(drawer);
+
+
   }
   else {
     Picker picker(invEyeRbt, uniforms);
@@ -554,6 +571,23 @@ bool interpolateAndDisplay(float t) {
   g_animator.animate(t);
   return false;
 }
+
+
+static void treeGrowAnimateTimerCallback(int ms) {
+  double t = (double)ms / g_msBetweenKeyFrames;
+  bool endReached = interpolateAndDisplay(t);
+  if (animating && animate_level < tree_height) {
+    glutTimerFunc(1000/g_animateFramesPerSecond, treeGrowAnimateTimerCallback, ms + 1000/g_animateFramesPerSecond);
+    animate_level++; 
+  }
+  else {
+    cerr << "Finished playing animation" << endl;
+    animating = false; 
+    animate_level = 0; 
+  }
+  display();
+}
+
 
 static void animateTimerCallback(int ms) {
   double t = (double)ms / g_msBetweenKeyFrames;
@@ -923,9 +957,11 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     // initScene(); 
     // initAnimation();
     //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2)))); 
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));       
+    //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));  g
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
-    glutPostRedisplay(); 
+    g_world->addChild(g_treeNode);
     break; 
   case '2':
     cout << "Num iterations decreased" << endl;
@@ -934,40 +970,62 @@ static void keyboard(const unsigned char key, const int x, const int y) {
       num_iterations = 0; 
     }
     // NOT the correct way to do this.
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));    
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
-    glutPostRedisplay(); 
+    g_world->addChild(g_treeNode);
     break; 
   case '3':
     selected_tree++; 
     selected_tree %= 6; 
     ss << selected_tree; 
     tree_lookup = "Lsystems/l" + ss.str() + ".txt"; 
-    initScene(); 
-    initAnimation();
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    g_world->addChild(g_treeNode);
     break;
-    break; 
   case '4':
     branch_thickness += 0.1; 
-    initScene(); 
-    initAnimation();
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    g_world->addChild(g_treeNode);
     break;
   case '5':
     branch_thickness -= 0.1; 
-    initScene(); 
-    initAnimation();
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    g_world->addChild(g_treeNode);
     break;
   case '6':
     branch_length *= 2; 
-    initScene(); 
-    initAnimation();
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    g_world->addChild(g_treeNode);
     break;
   case '7':
     branch_length /= 2; 
-    initScene(); 
-    initAnimation();
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    g_world->addChild(g_treeNode);
     break;
-
+  case '8':
+    leaves_on++; 
+    leaves_on%=2; 
+    g_world->removeChild(g_treeNode);
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    g_world->addChild(g_treeNode);
+    break;
+  case '0':
+    animating = !animating; 
+    treeGrowAnimateTimerCallback(0);
+    cout << "Printing tree " << endl;  
+    break; 
   }
 
   // Sanity check that our g_curKeyFrameNum is in sync with the g_curKeyFrame
@@ -1103,13 +1161,16 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 
   int rotate = 0; 
 
+  int first = 0; 
+  tree_height = 0; 
+
   for (int i = 0; i < tmp.length(); ++i) {
     if (tmp.substr(i, 1) == "F") {
 
       int r3 = rand() % 3; 
       if (rand() % 2 == 0) 
         r3 *= -1; 
-      if (cur_thickness > 0.025) {
+      
       jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
                            new MyShapeNode(g_cylinderGeometry, 
                                           g_cylinderMat,
@@ -1117,16 +1178,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                           //g_brownDiffuseMat,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(90, 0, 0),
-                                          Cvec3(cur_thickness,cur_thickness,branch_length * 0.05))));
-      }
-      else {
-        jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-                           new MyShapeNode(g_cylinderGeometry,
-                                          g_brownDiffuseMat,
-                                          Cvec3(0,0,0), //lastLocation.getTranslation(),
-                                          Cvec3(90, 0, 0),
-                                          Cvec3(cur_thickness,cur_thickness,branch_length * 0.05))));
-      }
+                                          Cvec3(cur_thickness,cur_thickness,branch_length * 0.075))));
+
       int r1 = rand() % 2;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1 && cur_thickness < 0.025) {
@@ -1140,11 +1193,16 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       }
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.05,0))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.1,0))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
       cur_jointId = highest_jointId;
+
+      if (first == 0) {
+        tree_base = transformNode;
+        first = 1; 
+      }
     } 
     else if (tmp.substr(i, 1) == "+") {
       rotate = 1; 
@@ -1173,6 +1231,10 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
       cur_jointId = highest_jointId;
+      if (first == 0) {
+        tree_base = transformNode;
+        first = 1; 
+      }
     } 
     else if (tmp.substr(i, 1) == "-") {
       shared_ptr<SgTransformNode> transformNode;
@@ -1200,6 +1262,10 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
       cur_jointId = highest_jointId;
+      if (first == 0) {
+        tree_base = transformNode;
+        first = 1; 
+      }
     } 
     else if (tmp.substr(i, 1) == "[") {
       jointIds.push_back(cur_jointId);
@@ -1218,7 +1284,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
     else {
     }
   }
-  while (!leavesToAdd.empty()) {
+  while (!leavesToAdd.empty() and leaves_on == 0) {
     //cout << "leaf!" << endl;
     int leaf_id = leavesToAdd.top(); 
     leavesToAdd.pop(); 
@@ -1230,6 +1296,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                         Cvec3(15,15,90),
                                         Cvec3(0.1, 0.1,0.00001))));
   }
+  tree_height = highest_jointId; 
 }
 
 static void initScene() {
