@@ -175,5 +175,110 @@ void makeSphere(float radius, int slices, int stacks, VtxOutIter vtxIter, IdxOut
   }
 }
 
+inline void getCylinderVbIbLen(int slices, int stacks, int& vbLen, int& ibLen) {
+  assert(slices > 1);
+  assert(stacks >= 2);
+  vbLen = (slices) * (stacks + 1);
+  ibLen = slices * stacks * 6;
+}
+
+//http://richardssoftware.net/Home/Post/7
+template<typename VtxOutIter, typename IdxOutIter>
+void makeCylinder(float botRadius, float topRadius, float height, int slices, int stacks, VtxOutIter vtxIter, IdxOutIter idxIter) {
+  using namespace std;
+  assert(slices > 1);
+  assert(stacks >= 2);
+
+  const double radPerSlice = 2 * CS175_PI / slices;
+  const double radPerStack = CS175_PI / stacks;
+
+  double stackHeight = height/stacks; 
+  //double radiusStep = (topRadius - botRadius)/stacks; 
+
+  for (int i = 0; i < stacks + 1; ++i) {
+    double y = -0.5*height + i*stackHeight; 
+    double r = botRadius; // + i * radiusStep; 
+    double dTheta = 2.0f*CS175_PI/slices; 
+
+    for (int j = 0; j < slices; ++j) {
+      double c = cos(j*dTheta);
+      double s = sin(j*dTheta);
+
+      Cvec3f v(r*c, y, r*s);
+      Cvec2f uv(j * 1.0/slices, 1.0 - i*1.0/stacks);
+
+      Cvec3f t(-s, 0, c);
+      double dr = botRadius - topRadius; 
+      Cvec3f bitangent(dr*c, -height, dr*s);
+
+      Cvec3f n = cross(t, bitangent);
+      n = normalize(n);
+
+      Cvec3f b = cross(n, t);
+
+      *vtxIter = GenericVertex(
+        v[0], v[1], v[2],
+        n[0], n[1], n[2],
+        uv[0], uv[1],
+        t[0], t[1], t[2],
+        b[0], b[1], b[2]);
+      ++vtxIter;
+    }
+  }
+
+  for (int i = 0; i < stacks; i++) {
+    for (int j = 0; j < slices; j++) {
+      *idxIter = (slices+1) * i + j;
+      *++idxIter = (slices+1) * (i + 1) + j;
+      *++idxIter = (slices+1) * (i + 1) + j + 1;
+
+      *++idxIter = (slices+1) * i + j;
+      *++idxIter = (slices+1) * (i + 1) + j + 1;
+      *++idxIter = (slices+1) * i + j + 1;
+      ++idxIter;
+    }
+  }
+  //vector<double> longSin(slices+1), longCos(slices+1);
+  //vector<double> latSin(stacks+1), latCos(stacks+1);
+  // for (int i = 0; i < slices + 1; ++i) {
+  //   longSin[i] = sin(radPerSlice * i);
+  //   longCos[i] = cos(radPerSlice * i);
+  // }
+  // for (int i = 0; i < stacks + 1; ++i) {
+  //   latSin[i] = sin(radPerStack * i);
+  //   latCos[i] = cos(radPerStack * i);
+  // }
+
+  // for (int i = 0; i < slices + 1; ++i) {
+  //   for (int j = 0; j < stacks + 1; ++j) {
+  //     float x = longCos[i] * latSin[j];
+  //     float y = longSin[i] * latSin[j];
+  //     float z = latCos[j];
+
+  //     Cvec3f n(x, y, z);
+  //     Cvec3f t(-longSin[i], longCos[i], 0);
+  //     Cvec3f b = cross(n, t);
+
+  //     *vtxIter = GenericVertex(
+  //       x * radius, y * radius, z * radius,
+  //       x, y, z,
+  //       1.0/slices*i, 1.0/stacks*j,
+  //       t[0], t[1], t[2],
+  //       b[0], b[1], b[2]);
+  //     ++vtxIter;
+
+  //     if (i < slices && j < stacks ) {
+  //       *idxIter = (stacks+1) * i + j;
+  //       *++idxIter = (stacks+1) * i + j + 1;
+  //       *++idxIter = (stacks+1) * (i + 1) + j + 1;
+
+  //       *++idxIter = (stacks+1) * i + j;
+  //       *++idxIter = (stacks+1) * (i + 1) + j + 1;
+  //       *++idxIter = (stacks+1) * (i + 1) + j;
+  //       ++idxIter;
+  //     }
+  //   }
+}
+
 
 #endif

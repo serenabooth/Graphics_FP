@@ -72,6 +72,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 // To complete the assignment you only need to edit the shader files that get
 // loaded
 // ----------------------------------------------------------------------------
+GLUquadric* qobj;
+
 static bool animating = false; 
 static int animate_level = 3; 
 
@@ -140,7 +142,7 @@ typedef SgGeometryShapeNode MyShapeNode;
 
 
 // Vertex buffer and index buffer associated with the ground and cube geometry
-static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf, g_cylinder;
+static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf, g_cylinder, g_cylinderTEST;
 
 // --------- Scene
 
@@ -293,6 +295,14 @@ static int g_curKeyFrameNum;
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
 
 static void initCylinderMeshes() {
+
+  glEnable(GL_TEXTURE_2D);
+
+  glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+  glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+  glEnable(GL_TEXTURE_GEN_S);
+  glEnable(GL_TEXTURE_GEN_T);
+
   g_cylinderMesh.load("Cylinder_test.mesh");
   vector<VertexPNX> vertice_iter; 
 
@@ -368,6 +378,17 @@ static void initSphere() {
   vector<unsigned short> idx(ibLen);
   makeSphere(1, 20, 10, vtx.begin(), idx.begin());
   g_sphere.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
+}
+
+static void initCylinder() {
+  int ibLen, vbLen;
+  getCylinderVbIbLen(5, 80, vbLen, ibLen);
+
+  // Temporary storage for sphere Geometry
+  vector<VertexPNTBX> vtx(vbLen);
+  vector<unsigned short> idx(ibLen);
+  makeCylinder(1, 1, 1, 5, 80, vtx.begin(), idx.begin());
+  g_cylinderTEST.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
 // static void initCylinder() {
@@ -571,7 +592,6 @@ bool interpolateAndDisplay(float t) {
   g_animator.animate(t);
   return false;
 }
-
 
 static void treeGrowAnimateTimerCallback(int ms) {
   double t = (double)ms / g_msBetweenKeyFrames;
@@ -1096,6 +1116,7 @@ static void initMaterials() {
   g_barkMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3-less-shiny.fshader"));
   g_barkMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745.ppm", true)));
   g_barkMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745-normal.ppm", false)));
+  g_barkMat->getRenderStates().disable(GL_CULL_FACE);
 
   g_leafMat.reset(new Material("./shaders/leaf.vshader", "./shaders/bunny-shell-gl3.fshader"));
   g_leafMat->getUniforms().put("uTexShell", shared_ptr<ImageTexture>(new ImageTexture("./textures/leaf.ppm", true)));
@@ -1135,6 +1156,7 @@ static void initGeometry() {
   initGround();
   initCubes();
   initSphere();
+  initCylinder(); 
   //initLeaf(); 
   //initCylinder(); 
   initCylinderMeshes();
@@ -1189,15 +1211,28 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       if (rand() % 2 == 0) 
         r3 *= -1; 
       
-      jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-                           new MyShapeNode(g_cylinderGeometry, 
-                                          g_cylinderMat,
+      //if (cur_thickness > 0.025) {
+        jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+                           new MyShapeNode(g_cylinderTEST, 
+                                          g_barkMat,
+                                          //g_cylinderMat,
                                           //g_grassMat,
                                           //g_brownDiffuseMat,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
-                                          Cvec3(90, 0, 0),
-                                          Cvec3(cur_thickness,cur_thickness,branch_length * 0.075))));
-
+                                          Cvec3(0, 0, 0),
+                                          Cvec3(cur_thickness,branch_length * 0.075, cur_thickness))));
+      // }
+      // else {
+      // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+      //                      new MyShapeNode(g_cylinderGeometry, 
+      //                                     //g_barkMat,
+      //                                     g_cylinderMat,
+      //                                     //g_grassMat,
+      //                                     //g_brownDiffuseMat,
+      //                                     Cvec3(0,0,0), //lastLocation.getTranslation(),
+      //                                     Cvec3(90, 0, 0),
+      //                                     Cvec3(cur_thickness,cur_thickness,branch_length * 0.075))));
+      // }
       int r1 = rand() % 2;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1 && cur_thickness < 0.025) {
@@ -1211,7 +1246,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       }
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.1,0))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.075,0))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
