@@ -110,6 +110,9 @@ static int num_iterations = 6;
 static std::string tree_lookup = "Lsystems/l2.txt"; 
 static int selected_tree = 2; 
 
+static double branch_thickness = 1.0; 
+static double branch_length = 1.0; 
+
 // -------- Materials
 static shared_ptr<Material> g_brownDiffuseMat, 
                             g_greenDiffuseMat,
@@ -720,6 +723,8 @@ static void keyboardUp(const unsigned char key, const int x, const int y) {
 }
 
 static void keyboard(const unsigned char key, const int x, const int y) {
+  ostringstream ss; 
+
   switch (key) {
   case ' ':
     g_spaceDown = true;
@@ -910,34 +915,59 @@ static void keyboard(const unsigned char key, const int x, const int y) {
       cerr << "Stopping animation... " << endl;
       g_playingAnimation = false;
     }
+    break; 
   case '1':
     cout << "Num iterations increased" << endl;
     num_iterations++; 
-    // NOT the correct way to do this. 
-    initScene(); 
-    initAnimation();
+    // // NOT the correct way to do this. 
+    // initScene(); 
+    // initAnimation();
+    //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2)))); 
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));       
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    glutPostRedisplay(); 
     break; 
   case '2':
+    cout << "Num iterations decreased" << endl;
     num_iterations--; 
     if (num_iterations < 0) {
       num_iterations = 0; 
     }
-    // NOT the correct way to do this. 
-    initScene(); 
-    initAnimation();
-
+    // NOT the correct way to do this.
+    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));    
+    constructTree(g_treeNode, g_barkMat, g_leafMat);
+    glutPostRedisplay(); 
     break; 
   case '3':
     selected_tree++; 
     selected_tree %= 6; 
-    ostringstream ss; 
     ss << selected_tree; 
     tree_lookup = "Lsystems/l" + ss.str() + ".txt"; 
     initScene(); 
     initAnimation();
     break;
-
+    break; 
+  case '4':
+    branch_thickness += 0.1; 
+    initScene(); 
+    initAnimation();
     break;
+  case '5':
+    branch_thickness -= 0.1; 
+    initScene(); 
+    initAnimation();
+    break;
+  case '6':
+    branch_length *= 2; 
+    initScene(); 
+    initAnimation();
+    break;
+  case '7':
+    branch_length /= 2; 
+    initScene(); 
+    initAnimation();
+    break;
+
   }
 
   // Sanity check that our g_curKeyFrameNum is in sync with the g_curKeyFrame
@@ -1065,7 +1095,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   jointIds.push_back(cur_jointId);
 
   vector < double > thickness;
-  double cur_thickness = 0.1; 
+  double cur_thickness = 0.1 * branch_thickness; 
   thickness.push_back(cur_thickness);
 
   std::priority_queue<int> leavesToAdd;
@@ -1087,15 +1117,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                           //g_brownDiffuseMat,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
                                           Cvec3(90, 0, 0),
-                                          Cvec3(cur_thickness,0.05,cur_thickness))));
+                                          Cvec3(cur_thickness,cur_thickness,branch_length * 0.05))));
       }
       else {
         jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
                            new MyShapeNode(g_cylinderGeometry,
                                           g_brownDiffuseMat,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
-                                          Cvec3(0, 0, 0),
-                                          Cvec3(cur_thickness,0.05,cur_thickness))));
+                                          Cvec3(90, 0, 0),
+                                          Cvec3(cur_thickness,cur_thickness,branch_length * 0.05))));
       }
       int r1 = rand() % 2;
       int r2 = rand() % 2 - 1; 
@@ -1110,7 +1140,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       }
 
       shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,0.05,0))));
+      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.05,0))));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1186,25 +1216,20 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 
     }
     else {
-
     }
-
   }
+  while (!leavesToAdd.empty()) {
+    //cout << "leaf!" << endl;
+    int leaf_id = leavesToAdd.top(); 
+    leavesToAdd.pop(); 
 
-      while (!leavesToAdd.empty()) {
-      //cout << "leaf!" << endl;
-      int leaf_id = leavesToAdd.top(); 
-      leavesToAdd.pop(); 
-
-      jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(
-                           new MyShapeNode(g_cube,
-                                          leaf_material,
-                                          Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
-                                          Cvec3(15,15,90),
-                                          Cvec3(0.1, 0.1,0.00001))));
-    }
-
-
+    jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(
+                         new MyShapeNode(g_cube,
+                                        leaf_material,
+                                        Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
+                                        Cvec3(15,15,90),
+                                        Cvec3(0.1, 0.1,0.00001))));
+  }
 }
 
 static void initScene() {
