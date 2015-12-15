@@ -1176,7 +1176,6 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   thickness.push_back(cur_thickness);
 
   std::priority_queue<int> leavesToAdd;
-  leavesToAdd.push(0);
 
   int rotate = 0; 
 
