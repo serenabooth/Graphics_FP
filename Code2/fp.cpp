@@ -146,7 +146,7 @@ static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_leaf, g_cylinder, g_cy
 
 // --------- Scene
 
-Cvec3 g_light1(2.0, 3.0, -10.0), g_light2(2, -3.0, -5.0);  // define two lights positions in world space
+Cvec3 g_light1(6.0, 3.0, -10.0), g_light2(2, 3.0, 5.0);  // define two lights positions in world space
 
 static shared_ptr<SgRootNode> g_world;
 static shared_ptr<SgRbtNode> g_skyNode, g_groundNode, g_light1Node, g_light2Node, g_treeNode, g_cylinderNode;
@@ -1116,7 +1116,9 @@ static void initMaterials() {
   g_barkMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3-less-shiny.fshader"));
   g_barkMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745.ppm", true)));
   g_barkMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745-normal.ppm", false)));
-  g_barkMat->getRenderStates().disable(GL_CULL_FACE);
+  g_barkMat->getRenderStates().blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) // set blending mode
+  .enable(GL_BLEND) // enable blending
+  .disable(GL_CULL_FACE); // disable culling
 
   g_leafMat.reset(new Material("./shaders/leaf.vshader", "./shaders/bunny-shell-gl3.fshader"));
   g_leafMat->getUniforms().put("uTexShell", shared_ptr<ImageTexture>(new ImageTexture("./textures/leaf.ppm", true)));
@@ -1219,7 +1221,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                           //g_grassMat,
                                           //g_brownDiffuseMat,
                                           Cvec3(0,0,0), //lastLocation.getTranslation(),
-                                          Cvec3(0, 0, 0),
+                                          Cvec3(0, 0, 0.1),
                                           Cvec3(cur_thickness,branch_length * 0.075, cur_thickness))));
       // }
       // else {
@@ -1358,7 +1360,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 static void initScene() {
   g_world.reset(new SgRootNode());
 
-  g_skyNode.reset(new SgRbtNode(RigTForm(Cvec3(0.0, 0.25, 6.0))));
+  g_skyNode.reset(new SgRbtNode(RigTForm(Cvec3(0.0, 1, 6.0))));
 
 
   g_groundNode.reset(new SgRbtNode());
