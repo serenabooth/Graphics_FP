@@ -73,7 +73,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 // loaded
 // ----------------------------------------------------------------------------
 static bool animating = false; 
-static int animate_level = 0; 
+static int animate_level = 3; 
 
 static shared_ptr<SgTransformNode> tree_base; 
 
@@ -583,7 +583,7 @@ static void treeGrowAnimateTimerCallback(int ms) {
   else {
     cerr << "Finished playing animation" << endl;
     animating = false; 
-    animate_level = 0; 
+    animate_level = 3; 
   }
   display();
 }
