@@ -1140,6 +1140,25 @@ static void initGeometry() {
   initCylinderMeshes();
 }
 
+static int computeTreeHeight( shared_ptr<SgTransformNode> start, int depth )
+{
+  if( start->getNumChildren() > 0 )
+  {
+    if( depth+1 > tree_height )
+      tree_height = depth+1;
+
+    for( int i = 0; i < start->getNumChildren(); i++ )
+    {
+      shared_ptr<SgNode> s = start->getChild(i);
+      shared_ptr<SgTransformNode> ptr(dynamic_pointer_cast<SgTransformNode>(s));
+      if( ptr )
+      {
+        computeTreeHeight( ptr, depth+1);
+      }
+    }
+  }
+}
+
 static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material> trunk_material, shared_ptr<Material> leaf_material) {
   LSystem* check = new LSystem(tree_lookup);
   std::string tmp = check->gen_string(check->axiom, 0, num_iterations);
@@ -1162,7 +1181,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   int rotate = 0; 
 
   int first = 0; 
-  tree_height = 0; 
+  //tree_height = 0; 
 
   for (int i = 0; i < tmp.length(); ++i) {
     if (tmp.substr(i, 1) == "F") {
@@ -1296,7 +1315,10 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                         Cvec3(15,15,90),
                                         Cvec3(0.1, 0.1,0.00001))));
   }
-  tree_height = highest_jointId; 
+  //tree_height = highest_jointId; 
+  tree_height = 0;
+  computeTreeHeight( base, 0 );
+  cout << tree_height << endl; 
 }
 
 static void initScene() {
