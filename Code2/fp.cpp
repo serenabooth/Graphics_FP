@@ -1197,13 +1197,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 
   int first = 0; 
 
+  int num_cylinders = 0; 
+
   Cvec3 last_translation = Cvec3(); 
   vector < Cvec3 > all_translations; 
   all_translations.push_back(last_translation);
 
   for (int i = 0; i < tmp.length(); ++i) {
     if (tmp.substr(i, 1) == "F") {
-
+      num_cylinders++; 
       int r3 = rand() % 3; 
       if (rand() % 2 == 0) {
         r3 *= -1; 
@@ -1344,6 +1346,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 
   tree_height = 0;
   computeTreeHeight( base, 0 );
+  cout << "String length: " << tmp.length() << endl; 
+  cout << "Cylinders: " <<  num_cylinders<< endl; 
   cout << "Tree height: " << tree_height << endl; 
 }
 
