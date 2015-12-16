@@ -1,4 +1,4 @@
-BASE = fp
+BASE = sbooth_trees
 
 all: $(BASE)
 
