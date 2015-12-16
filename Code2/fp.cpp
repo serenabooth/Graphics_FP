@@ -988,6 +988,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     // initAnimation();
     //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2)))); 
     //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));  g
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -999,7 +1000,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     if (num_iterations < 0) {
       num_iterations = 0; 
     }
-    // NOT the correct way to do this.
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -1010,6 +1011,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     selected_tree %= 6; 
     ss << selected_tree; 
     tree_lookup = "Lsystems/l" + ss.str() + ".txt"; 
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -1017,6 +1019,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     break;
   case '4':
     branch_thickness += 0.1; 
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -1024,6 +1027,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     break;
   case '5':
     branch_thickness -= 0.1; 
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -1031,6 +1035,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     break;
   case '6':
     branch_length *= 2; 
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -1038,6 +1043,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     break;
   case '7':
     branch_length /= 2; 
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -1046,6 +1052,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
   case '8':
     leaves_on++; 
     leaves_on%=2; 
+    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
     g_world->removeChild(g_treeNode);
     g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
     constructTree(g_treeNode, g_barkMat, g_leafMat);
@@ -1054,6 +1061,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
   case '9': 
     simLeaves = !simLeaves; 
     if (simLeaves) {
+      g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
       g_world->removeChild(g_treeNode);
       g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));   
       constructTree(g_treeNode, g_barkMat, g_leafMat);
