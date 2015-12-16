@@ -72,7 +72,11 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 // To complete the assignment you only need to edit the shader files that get
 // loaded
 // ----------------------------------------------------------------------------
-GLUquadric* qobj;
+static shared_ptr<SgRbtNode> leafTransformNode;
+
+static vector< shared_ptr<SgTransformNode> > jointNodes;
+static std::priority_queue<int> leavesToAdd;
+static bool simLeaves = false; 
 
 static bool animating = false; 
 static int animate_level = 3; 
@@ -80,7 +84,6 @@ static int animate_level = 3;
 static shared_ptr<SgTransformNode> tree_base; 
 
 const bool g_Gl2Compatible = false;
-static shared_ptr<Material> g_cylinderMat; // for the cylinder
 
 static shared_ptr<SimpleGeometryPNX> g_cylinderGeometry;
 static Mesh g_cylinderMesh; 
@@ -114,8 +117,8 @@ static bool g_pickingMode = false;
 static bool g_playingAnimation = false;
 
 static int num_iterations = 6; 
-static std::string tree_lookup = "Lsystems/l2.txt"; 
-static int selected_tree = 2; 
+static std::string tree_lookup = "Lsystems/l0.txt"; 
+static int selected_tree = 0; 
 
 static double branch_thickness = 1.0; 
 static double branch_length = 1.0; 
@@ -134,7 +137,8 @@ static shared_ptr<Material> g_brownDiffuseMat,
                             g_lightMat, 
                             g_barkMat, 
                             g_grassMat, 
-                            g_leafMat;
+                            g_leafMat, 
+                            g_cylinderMat;
 
 shared_ptr<Material> g_overridingMaterial;
 
@@ -391,29 +395,6 @@ static void initCylinder() {
   g_cylinderTEST.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
-// static void initCylinder() {
-//   int ibLen, vbLen;
-//   getSphereVbIbLen(20, 20, vbLen, ibLen);
-
-//   // Temporary storage for sphere Geometry
-//   vector<VertexPNTBX> vtx(vbLen);
-//   vector<unsigned short> idx(ibLen);
-//   makeCylinder(1, 20, 20, vtx.begin(), idx.begin());
-//   g_cylinder.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
-// }
-
-
-// static void initLeaf() {
-//   int ibLen, vbLen;
-//   getLeafVbIbLen(20, 10, vbLen, ibLen);
-
-//   // Temporary storage for sphere geometry
-//   vector<VertexPNTBX> vtx(vbLen);
-//   vector<unsigned short> idx(ibLen);
-//   makeLeaf(1, 20, 10, vtx.begin(), idx.begin());
-//   g_leaf.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
-// }
-
 // takes a projection matrix and send to the the shaders
 inline void sendProjectionMatrix(Uniforms& uniforms, const Matrix4& projMatrix) {
   uniforms.put("uProjMatrix", projMatrix);
@@ -608,6 +589,32 @@ static void treeGrowAnimateTimerCallback(int ms) {
   display();
 }
 
+static void leafAnimateTimerCallback(int ms) {
+
+  cout << "Animating" << endl; 
+  double t = (double)ms / g_msBetweenKeyFrames;
+  bool endReached = interpolateAndDisplay(t);
+  if (simLeaves) {
+    glutTimerFunc(1000/g_animateFramesPerSecond, leafAnimateTimerCallback, ms + 1000/g_animateFramesPerSecond);
+  }
+  else {
+    cerr << "Finished playing animation" << endl;
+  }
+  RigTForm cur_trans = leafTransformNode->getRbt(); 
+
+  int rand_num = rand() % 3; 
+  if (rand_num == 0) {
+    leafTransformNode->setRbt(RigTForm(Cvec3(), cur_trans.getRotation() + Quat::makeYRotation( rand() % 180 )));
+  }
+  else if (rand_num == 1) {
+    leafTransformNode->setRbt(RigTForm(Cvec3(), cur_trans.getRotation() + Quat::makeXRotation( rand() % 180 )));
+  }
+  else {
+    leafTransformNode->setRbt(RigTForm(Cvec3(), cur_trans.getRotation() + Quat::makeZRotation( rand() % 180 )));
+  }
+  display(); 
+}
+
 
 static void animateTimerCallback(int ms) {
   double t = (double)ms / g_msBetweenKeyFrames;
@@ -761,6 +768,7 @@ static void mouse(const int button, const int state, const int x, const int y) {
   if (g_pickingMode && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
     pick();
     g_pickingMode = false;
+    g_displayArcball = true; 
     cerr << "Picking mode is off" << endl;
     glutPostRedisplay(); // request redisplay since the arcball will have moved
   }
@@ -825,6 +833,8 @@ static void keyboard(const unsigned char key, const int x, const int y) {
   break;
   case 'p':
     g_pickingMode = !g_pickingMode;
+    if (g_pickingMode) 
+      g_displayArcball = false;
     cerr << "Picking mode is " << (g_pickingMode ? "on" : "off") << endl;
     break;
   case 'm':
@@ -1041,6 +1051,16 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     constructTree(g_treeNode, g_barkMat, g_leafMat);
     g_world->addChild(g_treeNode);
     break;
+  case '9': 
+    simLeaves = !simLeaves; 
+    if (simLeaves) {
+      g_world->removeChild(g_treeNode);
+      g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));   
+      constructTree(g_treeNode, g_barkMat, g_leafMat);
+      g_world->addChild(g_treeNode);
+    }
+    leafAnimateTimerCallback(0);
+    break;
   case '0':
     animating = !animating; 
     treeGrowAnimateTimerCallback(0);
@@ -1164,18 +1184,15 @@ static void initGeometry() {
   initCylinderMeshes();
 }
 
-static int computeTreeHeight( shared_ptr<SgTransformNode> start, int depth )
-{
-  if( start->getNumChildren() > 0 )
-  {
-    if( depth+1 > tree_height )
+static int computeTreeHeight( shared_ptr<SgTransformNode> start, int depth ) {
+  if(start->getNumChildren() > 0) {
+    if(depth+1 > tree_height)
       tree_height = depth+1;
 
-    for( int i = 0; i < start->getNumChildren(); i++ )
-    {
+    for(int i = 0; i < start->getNumChildren(); ++i) {
       shared_ptr<SgNode> s = start->getChild(i);
       shared_ptr<SgTransformNode> ptr(dynamic_pointer_cast<SgTransformNode>(s));
-      if( ptr )
+      if(ptr)
       {
         computeTreeHeight( ptr, depth+1);
       }
@@ -1187,7 +1204,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   LSystem* check = new LSystem(tree_lookup);
   std::string tmp = check->gen_string(check->axiom, 0, num_iterations);
 
-  vector< shared_ptr<SgTransformNode> > jointNodes;
+  jointNodes.clear(); 
   jointNodes.push_back(base);
 
   vector< int > jointIds;
@@ -1199,8 +1216,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   double cur_thickness = 0.1 * branch_thickness; 
   thickness.push_back(cur_thickness);
 
-  std::priority_queue<int> leavesToAdd;
-
+  leavesToAdd = priority_queue <int> (); 
   int rotate = 0; 
 
   int first = 0; 
@@ -1339,18 +1355,46 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
     else {
     }
   }
-  while (!leavesToAdd.empty() and leaves_on == 0) {
-    //cout << "leaf!" << endl;
-    int leaf_id = leavesToAdd.top(); 
-    leavesToAdd.pop(); 
 
-    jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(
+  if (simLeaves) {
+    while (!leavesToAdd.empty() and leaves_on == 0) {
+      //cout << "leaf!" << endl;
+      int leaf_id = leavesToAdd.top(); 
+      leavesToAdd.pop(); 
+
+      //RigTForm cur_trans = leafTransformNode->getRbt(); 
+      //transformNode->setRbt(RigTForm(Cvec3(), cur_trans.getRotation() + Quat::makeYRotation(10)));
+      leafTransformNode->addChild(shared_ptr<SgGeometryShapeNode>(
                          new MyShapeNode(g_cube,
-                                        leaf_material,
+                                        g_leafMat,
                                         Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
                                         Cvec3(15,15,90),
                                         Cvec3(0.1, 0.1,0.00001))));
+      jointNodes[leaf_id]->addChild(leafTransformNode);
+
+      // jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(
+      //                    new MyShapeNode(g_cube,
+      //                                   g_leafMat,
+      //                                   Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
+      //                                   Cvec3(15,15,90),
+      //                                   Cvec3(0.1, 0.1,0.00001))));
+    }
   }
+  else {
+    while (!leavesToAdd.empty() and leaves_on == 0) {
+      //cout << "leaf!" << endl;
+      int leaf_id = leavesToAdd.top(); 
+      leavesToAdd.pop(); 
+
+      jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(
+                         new MyShapeNode(g_cube,
+                                        g_leafMat,
+                                        Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
+                                        Cvec3(15,15,90),
+                                        Cvec3(0.1, 0.1,0.00001))));
+    }
+  }
+
   //tree_height = highest_jointId; 
   tree_height = 0;
   computeTreeHeight( base, 0 );
@@ -1358,6 +1402,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 }
 
 static void initScene() {
+  leafTransformNode.reset(new SgRbtNode(RigTForm()));
+
   g_world.reset(new SgRootNode());
 
   g_skyNode.reset(new SgRbtNode(RigTForm(Cvec3(0.0, 1, 6.0))));
@@ -1380,7 +1426,6 @@ static void initScene() {
 
   g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));
   constructTree(g_treeNode, g_barkMat, g_leafMat);
-
 
   g_world->addChild(g_skyNode);
   g_world->addChild(g_groundNode);
