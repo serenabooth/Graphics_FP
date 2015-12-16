@@ -1138,14 +1138,17 @@ static void initMaterials() {
   g_barkMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745-normal.ppm", false)));
   g_barkMat->getRenderStates().blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) // set blending mode
   .enable(GL_BLEND) // enable blending
-  .disable(GL_CULL_FACE); // disable culling
+  .disable(GL_CULL_FACE)
+  .enable(GL_DEPTH_TEST); // disable culling
 
   g_leafMat.reset(new Material("./shaders/leaf.vshader", "./shaders/bunny-shell-gl3.fshader"));
   g_leafMat->getUniforms().put("uTexShell", shared_ptr<ImageTexture>(new ImageTexture("./textures/leaf.ppm", true)));
   g_leafMat->getRenderStates()
   .blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) // set blending mode
   .enable(GL_BLEND) // enable blending
-  .disable(GL_CULL_FACE); // disable culling
+  .disable(GL_CULL_FACE)
+  .disable(GL_DEPTH_TEST);
+  // disable culling
 
   g_grassMat.reset(new Material(grass));
   //g_grassMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3.fshader"));
@@ -1244,7 +1247,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                           //g_brownDiffuseMat,
                                           last_translation, //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
-                                          Cvec3(cur_thickness,branch_length /*0.075*/, cur_thickness )))); //cur_thickness))));
+                                          Cvec3(cur_thickness,branch_length * 0.075, cur_thickness )))); 
       // }
       // else {
       // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(

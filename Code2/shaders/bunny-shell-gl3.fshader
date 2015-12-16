@@ -32,13 +32,14 @@ void main() {
   float g = 0.009+ 0.13* u + 0.21* v;
   float b = 0.009+ 0.02 * u + 0.21* v;
 
-  float alpha = texture(uTexShell, vTexCoord).g;
+  vec3 texVal = texture(uTexShell, vTexCoord).rgb;
 
-  if (alpha > 0.4) {
+  if ( texVal.r < 0.004 && texVal.g < 0.004 && texVal.b < 0.004) 
+  {
     fragColor = vec4(r, g, b, 0);
   }
   else {
-    fragColor = vec4(texture(uTexShell, vTexCoord).r,texture(uTexShell, vTexCoord).g,texture(uTexShell, vTexCoord).b,1);
+    fragColor = vec4( texVal.r, texVal.g, texVal.b,1);
   }
   
 }

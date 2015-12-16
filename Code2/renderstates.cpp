@@ -6,14 +6,15 @@
 using namespace std;
 
 static const unsigned int kBlendBit = 1,
-                          kCullFaceBit = 2;
+                          kCullFaceBit = 2,
+                          kDepthTestBit = 4;
 
 RenderStates::RenderStates()
   : glFrontAndBack(GL_FILL)
   , glBlendSrcFactor(GL_ONE)
   , glBlendDstFactor(GL_ZERO)
   , glCullFaceMode(GL_BACK)
-  , flags(kCullFaceBit) {}
+  , flags(kCullFaceBit & kDepthTestBit) {}
 
 RenderStates& RenderStates::polygonMode(GLenum face, GLenum mode) {
   switch (mode) {
@@ -54,6 +55,9 @@ RenderStates& RenderStates::enable(GLenum target) {
   case GL_CULL_FACE:
     flags |= kCullFaceBit;
     return *this;
+  case GL_DEPTH_TEST: 
+    flags |= kDepthTestBit; 
+    return *this;
   default:
     ;
   }
@@ -68,6 +72,9 @@ RenderStates& RenderStates::disable(GLenum target) {
   case GL_CULL_FACE:
     flags &= ~kCullFaceBit;
     return *this;
+  case GL_DEPTH_TEST: 
+    flags &= ~kDepthTestBit; 
+    return *this; 
   default:
     ;
   }
@@ -112,6 +119,16 @@ void RenderStates::apply() const {
       ::glDisable(GL_CULL_FACE);
     currentRs.flags = (currentRs.flags & (~kCullFaceBit)) | (flags & kCullFaceBit);
   }
+
+  if ((flags & kDepthTestBit) != (currentRs.flags & kDepthTestBit))
+  {
+    if( flags & kDepthTestBit)
+      ::glEnable(GL_DEPTH_TEST);
+    else
+      ::glDisable(GL_DEPTH_TEST);
+    currentRs.flags = (currentRs.flags & (~kDepthTestBit)) | (flags & kDepthTestBit);
+  }
+
 }
 
 void RenderStates::captureFromGl() {
@@ -135,6 +152,9 @@ void RenderStates::captureFromGl() {
 
   if (::glIsEnabled(GL_CULL_FACE))
     flags |= kCullFaceBit;
+
+  if(::glIsEnabled(GL_DEPTH_TEST))
+    flags |= kDepthTestBit;
 
   checkGlErrors();
 }
