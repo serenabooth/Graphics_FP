@@ -74,8 +74,6 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
 // ----------------------------------------------------------------------------
 static shared_ptr<SgRbtNode> leafTransformNode;
 
-static vector< shared_ptr<SgTransformNode> > jointNodes;
-static std::priority_queue<int> leavesToAdd;
 static bool simLeaves = false; 
 
 static bool animating = false; 
@@ -137,8 +135,7 @@ static shared_ptr<Material> g_brownDiffuseMat,
                             g_lightMat, 
                             g_barkMat, 
                             g_grassMat, 
-                            g_leafMat, 
-                            g_cylinderMat;
+                            g_leafMat;
 
 shared_ptr<Material> g_overridingMaterial;
 
@@ -477,7 +474,7 @@ static void drawArcBall(Uniforms& uniforms) {
 }
 
 static void drawStuff(bool picking) {
-  cout << "drawing stuff! " << animating << endl; 
+  //cout << "drawing scene! " << animating << endl; 
   // Declare an empty uniforms
   Uniforms uniforms;
 
@@ -775,6 +772,14 @@ static void mouse(const int button, const int state, const int x, const int y) {
   glutPostRedisplay();
 }
 
+static void recreateTree(void) {
+  g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
+  g_world->removeChild(g_treeNode);
+  g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
+  constructTree(g_treeNode, g_barkMat, g_leafMat);
+  g_world->addChild(g_treeNode);
+}
+
 static void keyboardUp(const unsigned char key, const int x, const int y) {
   switch (key) {
   case ' ':
@@ -983,16 +988,7 @@ static void keyboard(const unsigned char key, const int x, const int y) {
   case '1':
     cout << "Num iterations increased" << endl;
     num_iterations++; 
-    // // NOT the correct way to do this. 
-    // initScene(); 
-    // initAnimation();
-    //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2)))); 
-    //g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));  g
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree(); 
     break; 
   case '2':
     cout << "Num iterations decreased" << endl;
@@ -1000,72 +996,40 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     if (num_iterations < 0) {
       num_iterations = 0; 
     }
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree(); 
     break; 
   case '3':
     selected_tree++; 
     selected_tree %= 6; 
     ss << selected_tree; 
     tree_lookup = "Lsystems/l" + ss.str() + ".txt"; 
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree();
     break;
   case '4':
     branch_thickness += 0.1; 
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree();
     break;
   case '5':
     branch_thickness -= 0.1; 
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree();
     break;
   case '6':
     branch_length *= 2; 
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree();
     break;
   case '7':
     branch_length /= 2; 
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree();
     break;
   case '8':
     leaves_on++; 
     leaves_on%=2; 
-    g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-    g_world->removeChild(g_treeNode);
-    g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));     
-    constructTree(g_treeNode, g_barkMat, g_leafMat);
-    g_world->addChild(g_treeNode);
+    recreateTree();
     break;
   case '9': 
     simLeaves = !simLeaves; 
     if (simLeaves) {
-      g_currentPickedRbtNode = shared_ptr<SgRbtNode>();
-      g_world->removeChild(g_treeNode);
-      g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));   
-      constructTree(g_treeNode, g_barkMat, g_leafMat);
-      g_world->addChild(g_treeNode);
+      recreateTree();
     }
     leafAnimateTimerCallback(0);
     break;
@@ -1149,7 +1113,7 @@ static void initMaterials() {
   .disable(GL_CULL_FACE)
   .enable(GL_DEPTH_TEST); // disable culling
 
-  g_leafMat.reset(new Material("./shaders/leaf.vshader", "./shaders/bunny-shell-gl3.fshader"));
+  g_leafMat.reset(new Material("./shaders/leaf.vshader", "./shaders/leaf-gl3.fshader"));
   g_leafMat->getUniforms().put("uTexShell", shared_ptr<ImageTexture>(new ImageTexture("./textures/leaf.ppm", true)));
   g_leafMat->getRenderStates()
   .blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) // set blending mode
@@ -1159,10 +1123,7 @@ static void initMaterials() {
   // disable culling
 
   g_grassMat.reset(new Material(grass));
-  //g_grassMat.reset(new Material("./shaders/normal-gl3.vshader", "./shaders/normal-gl3.fshader"));
-  //g_grassMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("textures/Grass.0002.ppm", true)));
   g_grassMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/22_DIFFUSE.ppm", true)));
-  //g_grassMat->getUniforms().put("uTexNormal", shared_ptr<ImageTexture>(new ImageTexture("./textures/22_NORMAL.ppm", false)));
 
   g_brownDiffuseMat.reset(new Material(bark));
   g_brownDiffuseMat->getUniforms().put("uTexColor", shared_ptr<ImageTexture>(new ImageTexture("./textures/5745.ppm", true)));
@@ -1175,12 +1136,6 @@ static void initMaterials() {
   // copy solid prototype, and set to color white
   g_lightMat.reset(new Material(solid));
   g_lightMat->getUniforms().put("uColor", Cvec3f(1, 1, 0));
-
-
-  shared_ptr<ImageTexture> barkTexture(new ImageTexture("./textures/5745.ppm", true));
-  g_cylinderMat.reset(new Material("./shaders/bunny-shell-gl3.vshader", "./shaders/bunny-shell-gl3.fshader"));
-  g_cylinderMat->getUniforms().put("uTexShell", barkTexture);
-  g_cylinderMat->getRenderStates().disable(GL_CULL_FACE); // disable culling
 
   g_pickingMat.reset(new Material("./shaders/basic-gl3.vshader", "./shaders/pick-gl3.fshader"));
 };
@@ -1215,8 +1170,10 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   LSystem* check = new LSystem(tree_lookup);
   std::string tmp = check->gen_string(check->axiom, 0, num_iterations);
 
-  jointNodes.clear(); 
+  vector< shared_ptr<SgTransformNode> > jointNodes;
   jointNodes.push_back(base);
+
+  std::priority_queue<int> leavesToAdd;
 
   vector< int > jointIds;
   int cur_jointId = 0; 
@@ -1231,7 +1188,6 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   int rotate = 0; 
 
   int first = 0; 
-  //tree_height = 0; 
 
   Cvec3 last_translation = Cvec3(); 
   vector < Cvec3 > all_translations; 
@@ -1241,54 +1197,24 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
     if (tmp.substr(i, 1) == "F") {
 
       int r3 = rand() % 3; 
-      if (rand() % 2 == 0) 
+      if (rand() % 2 == 0) {
         r3 *= -1; 
+      }
 
-
-      
-      //if (cur_thickness > 0.025) {
-        jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
+      jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
                            new MyShapeNode(g_cylinderTEST, 
-                                          g_barkMat,
-                                          //g_cylinderMat,
-                                          //g_grassMat,
-                                          //g_brownDiffuseMat,
+                                          trunk_material,
                                           last_translation, //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0),
                                           Cvec3(cur_thickness,branch_length * 0.075, cur_thickness )))); 
-      // }
-      // else {
-      // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-      //                      new MyShapeNode(g_cylinderGeometry, 
-      //                                     //g_barkMat,
-      //                                     g_cylinderMat,
-      //                                     //g_grassMat,
-      //                                     //g_brownDiffuseMat,
-      //                                     Cvec3(0,0,0), //lastLocation.getTranslation(),
-      //                                     Cvec3(90, 0, 0),
-      //                                     Cvec3(cur_thickness,cur_thickness,branch_length * 0.075))));
-      // }
+
       int r1 = rand() % 5;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1 && cur_thickness < 0.025) {
         leavesToAdd.push(cur_jointId);
-        // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
-        //                    new MyShapeNode(g_cube,
-        //                                   leaf_material,
-        //                                   Cvec3(0,0,0), //lastLocation.getTranslation(),
-        //                                   Cvec3(rand() % 15, 0,0 ),
-        //                                   Cvec3(0.1,0.2,0.001))));
       }
 
-      // shared_ptr<SgTransformNode> transformNode;
-      // transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.075,0))));
-      // jointNodes.push_back( transformNode );
-      // jointNodes[cur_jointId]->addChild(transformNode);
-      // highest_jointId++;
-      // cur_jointId = highest_jointId;
       last_translation += Cvec3(0,branch_length * 0.075,0) ; 
-
-
     } 
     else if (tmp.substr(i, 1) == "+") {
       rotate = 1; 
@@ -1371,15 +1297,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       all_translations.pop_back(); 
     }
     else if (tmp.substr(i, 1) == "X") {
-
+      // do nothing
     }
     else {
+      // do nothing
     }
   }
 
   if (simLeaves) {
     while (!leavesToAdd.empty() and leaves_on == 0) {
-      //cout << "leaf!" << endl;
       int leaf_id = leavesToAdd.top(); 
       leavesToAdd.pop(); 
 
@@ -1387,18 +1313,12 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       //transformNode->setRbt(RigTForm(Cvec3(), cur_trans.getRotation() + Quat::makeYRotation(10)));
       leafTransformNode->addChild(shared_ptr<SgGeometryShapeNode>(
                          new MyShapeNode(g_cube,
-                                        g_leafMat,
+                                        leaf_material,
                                         Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
                                         Cvec3(15,15,90),
-                                        Cvec3(0.2, 0.2,0.00001))));
+                                        Cvec3(0.15, 0.15, 0.00001))));
       jointNodes[leaf_id]->addChild(leafTransformNode);
 
-      // jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(
-      //                    new MyShapeNode(g_cube,
-      //                                   g_leafMat,
-      //                                   Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
-      //                                   Cvec3(15,15,90),
-      //                                   Cvec3(0.1, 0.1,0.00001))));
     }
   }
   else {
@@ -1412,14 +1332,13 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                         g_leafMat,
                                         Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
                                         Cvec3(15,15,90),
-                                        Cvec3(0.1, 0.1,0.00001))));
+                                        Cvec3(0.15, 0.15,0.00001))));
     }
   }
 
-  //tree_height = highest_jointId; 
   tree_height = 0;
   computeTreeHeight( base, 0 );
-  cout << tree_height << endl; 
+  cout << "Tree height: " << tree_height << endl; 
 }
 
 static void initScene() {
@@ -1441,9 +1360,6 @@ static void initScene() {
                           new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
   g_light2Node->addChild(shared_ptr<MyShapeNode>(
                           new MyShapeNode(g_sphere, g_lightMat, Cvec3())));
-
-  //g_cylinderNode.reset(new SgRbtNode());
-  //g_cylinderNode->addChild(shared_ptr<MyShapeNode>(new MyShapeNode(g_cylinderGeometry, g_cylinderMat)));
 
   g_treeNode.reset(new SgRbtNode(RigTForm(Cvec3(0, -2, -2))));
   constructTree(g_treeNode, g_barkMat, g_leafMat);
