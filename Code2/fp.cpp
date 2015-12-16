@@ -1222,12 +1222,18 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
   int first = 0; 
   //tree_height = 0; 
 
+  Cvec3 last_translation = Cvec3(); 
+  vector < Cvec3 > all_translations; 
+  all_translations.push_back(last_translation);
+
   for (int i = 0; i < tmp.length(); ++i) {
     if (tmp.substr(i, 1) == "F") {
 
       int r3 = rand() % 3; 
       if (rand() % 2 == 0) 
         r3 *= -1; 
+
+
       
       //if (cur_thickness > 0.025) {
         jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
@@ -1236,7 +1242,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                           //g_cylinderMat,
                                           //g_grassMat,
                                           //g_brownDiffuseMat,
-                                          Cvec3(0,0,0), //lastLocation.getTranslation(),
+                                          last_translation, //lastLocation.getTranslation(),
                                           Cvec3(0, 0, 0.1),
                                           Cvec3(cur_thickness,branch_length * 0.075, cur_thickness))));
       // }
@@ -1263,17 +1269,15 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
         //                                   Cvec3(0.1,0.2,0.001))));
       }
 
-      shared_ptr<SgTransformNode> transformNode;
-      transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.075,0))));
-      jointNodes.push_back( transformNode );
-      jointNodes[cur_jointId]->addChild(transformNode);
-      highest_jointId++;
-      cur_jointId = highest_jointId;
+      // shared_ptr<SgTransformNode> transformNode;
+      // transformNode.reset(new SgRbtNode(RigTForm(Cvec3(0,branch_length * 0.075,0))));
+      // jointNodes.push_back( transformNode );
+      // jointNodes[cur_jointId]->addChild(transformNode);
+      // highest_jointId++;
+      // cur_jointId = highest_jointId;
+      last_translation += Cvec3(0,branch_length * 0.075,0) ; 
 
-      if (first == 0) {
-        tree_base = transformNode;
-        first = 1; 
-      }
+
     } 
     else if (tmp.substr(i, 1) == "+") {
       rotate = 1; 
@@ -1297,7 +1301,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
         rotatation = Quat::makeXRotation(30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/20 * cur_thickness,-1 * cur_thickness,-1.0/10 * cur_thickness); 
       }
-      transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
+      transformNode.reset(new SgRbtNode(RigTForm(last_translation + adjustment, rotatation)));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1306,6 +1310,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
         tree_base = transformNode;
         first = 1; 
       }
+      last_translation = Cvec3(); 
+
     } 
     else if (tmp.substr(i, 1) == "-") {
       shared_ptr<SgTransformNode> transformNode;
@@ -1328,7 +1334,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
         rotatation = Quat::makeXRotation(-30 + r2 * (rand() % 5));
         adjustment = Cvec3(-1.0/20 * cur_thickness,-1* cur_thickness,-1.0/20 * cur_thickness); 
       }
-      transformNode.reset(new SgRbtNode(RigTForm(adjustment, rotatation)));
+      transformNode.reset(new SgRbtNode(RigTForm(last_translation + adjustment, rotatation)));
       jointNodes.push_back( transformNode );
       jointNodes[cur_jointId]->addChild(transformNode);
       highest_jointId++;
@@ -1337,17 +1343,21 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
         tree_base = transformNode;
         first = 1; 
       }
+      last_translation = Cvec3(); 
     } 
     else if (tmp.substr(i, 1) == "[") {
       jointIds.push_back(cur_jointId);
       cur_thickness = MAX((thickness.back() * 2.0 / 3.0), 0.01); 
       thickness.push_back(cur_thickness);
+      all_translations.push_back(last_translation);
     }
     else if (tmp.substr(i, 1) == "]") {
       cur_jointId = jointIds.back();
       jointIds.pop_back(); 
       cur_thickness = thickness.back(); 
       thickness.pop_back(); 
+      last_translation = all_translations.back(); 
+      all_translations.pop_back(); 
     }
     else if (tmp.substr(i, 1) == "X") {
 
