@@ -77,7 +77,7 @@ static shared_ptr<SgRbtNode> leafTransformNode;
 static bool simLeaves = false; 
 
 static bool animating = false; 
-static int animate_level = 3; 
+static int animate_level = 2; 
 
 static shared_ptr<SgTransformNode> tree_base; 
 
@@ -816,6 +816,16 @@ static void keyboard(const unsigned char key, const int x, const int y) {
     << ">\t\tGo to next frame\n"
     << "<\t\tGo to prev. frame\n"
     << "y\t\tPlay/Stop animation\n"
+    << "0\t\tPlay/Stop tree growing\n"
+    << "1\t\tIncrease L-System depth\n"
+    << "2\t\tDecrease L-System depth\n" 
+    << "3\t\tNext L-System\n"
+    << "4\t\tIncrease branch thickness\n" 
+    << "5\t\tDecrease branch thickness\n"
+    << "6\t\tIncrease branch length\n"
+    << "7\t\tDecrease branch length\n"
+    << "8\t\tTurn off\\on leaves\n"
+    << "9\t\tSimulate leaves moving\n"
     << endl;
     break;
   case 's':
@@ -1145,8 +1155,6 @@ static void initGeometry() {
   initCubes();
   initSphere();
   initCylinder(); 
-  //initLeaf(); 
-  //initCylinder(); 
   initCylinderMeshes();
 }
 
@@ -1309,12 +1317,10 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       int leaf_id = leavesToAdd.top(); 
       leavesToAdd.pop(); 
 
-      //RigTForm cur_trans = leafTransformNode->getRbt(); 
-      //transformNode->setRbt(RigTForm(Cvec3(), cur_trans.getRotation() + Quat::makeYRotation(10)));
       leafTransformNode->addChild(shared_ptr<SgGeometryShapeNode>(
                          new MyShapeNode(g_cube,
                                         leaf_material,
-                                        Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
+                                        Cvec3(0.1,0.01,0), 
                                         Cvec3(15,15,90),
                                         Cvec3(0.15, 0.15, 0.00001))));
       jointNodes[leaf_id]->addChild(leafTransformNode);
@@ -1347,7 +1353,6 @@ static void initScene() {
   g_world.reset(new SgRootNode());
 
   g_skyNode.reset(new SgRbtNode(RigTForm(Cvec3(0.0, 1, 6.0))));
-
 
   g_groundNode.reset(new SgRbtNode());
   g_groundNode->addChild(shared_ptr<MyShapeNode>(
