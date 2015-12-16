@@ -386,12 +386,12 @@ static void initSphere() {
 
 static void initCylinder() {
   int ibLen, vbLen;
-  getCylinderVbIbLen(5, 80, vbLen, ibLen);
+  getCylinderVbIbLen(5, 1, vbLen, ibLen);
 
   // Temporary storage for sphere Geometry
   vector<VertexPNTBX> vtx(vbLen);
   vector<unsigned short> idx(ibLen);
-  makeCylinder(1, 1, 1, 5, 80, vtx.begin(), idx.begin());
+  makeCylinder(1, 1, 1, 5, 1, vtx.begin(), idx.begin());
   g_cylinderTEST.reset(new SimpleIndexedGeometryPNTBX(&vtx[0], &idx[0], vtx.size(), idx.size()));
 }
 
@@ -1243,8 +1243,8 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                           //g_grassMat,
                                           //g_brownDiffuseMat,
                                           last_translation, //lastLocation.getTranslation(),
-                                          Cvec3(0, 0, 0.1),
-                                          Cvec3(cur_thickness,branch_length * 0.075, cur_thickness))));
+                                          Cvec3(0, 0, 0),
+                                          Cvec3(cur_thickness,branch_length /*0.075*/, cur_thickness )))); //cur_thickness))));
       // }
       // else {
       // jointNodes[cur_jointId]->addChild(shared_ptr<SgGeometryShapeNode>(
@@ -1257,7 +1257,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
       //                                     Cvec3(90, 0, 0),
       //                                     Cvec3(cur_thickness,cur_thickness,branch_length * 0.075))));
       // }
-      int r1 = rand() % 2;
+      int r1 = rand() % 5;
       int r2 = rand() % 2 - 1; 
       if (r1 == 0 && rotate == 1 && cur_thickness < 0.025) {
         leavesToAdd.push(cur_jointId);
@@ -1379,7 +1379,7 @@ static void constructTree(shared_ptr<SgTransformNode> base, shared_ptr<Material>
                                         g_leafMat,
                                         Cvec3(0.1,0.01,0), //lastLocation.getTranslation(),
                                         Cvec3(15,15,90),
-                                        Cvec3(0.1, 0.1,0.00001))));
+                                        Cvec3(0.2, 0.2,0.00001))));
       jointNodes[leaf_id]->addChild(leafTransformNode);
 
       // jointNodes[leaf_id]->addChild(shared_ptr<SgGeometryShapeNode>(

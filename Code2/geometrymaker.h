@@ -177,8 +177,8 @@ void makeSphere(float radius, int slices, int stacks, VtxOutIter vtxIter, IdxOut
 
 inline void getCylinderVbIbLen(int slices, int stacks, int& vbLen, int& ibLen) {
   assert(slices > 1);
-  assert(stacks >= 2);
-  vbLen = (slices) * (stacks + 1);
+  //assert(stacks >= 2);
+  vbLen = (slices + 1) * (stacks + 1);
   ibLen = slices * stacks * 6;
 }
 
@@ -187,20 +187,22 @@ template<typename VtxOutIter, typename IdxOutIter>
 void makeCylinder(float botRadius, float topRadius, float height, int slices, int stacks, VtxOutIter vtxIter, IdxOutIter idxIter) {
   using namespace std;
   assert(slices > 1);
-  assert(stacks >= 2);
+  //assert(stacks >= 2);
 
   const double radPerSlice = 2 * CS175_PI / slices;
-  const double radPerStack = CS175_PI / stacks;
+  //const double radPerStack = CS175_PI / stacks;
 
   double stackHeight = height/stacks; 
   //double radiusStep = (topRadius - botRadius)/stacks; 
 
-  for (int i = 0; i < stacks + 1; ++i) {
+  for (int i = 0; i < stacks + 1; ++i) 
+  {
     double y = -0.5*height + i*stackHeight; 
     double r = botRadius; // + i * radiusStep; 
     double dTheta = 2.0f*CS175_PI/slices; 
 
-    for (int j = 0; j < slices; ++j) {
+    for (int j = 0; j <= slices; ++j) 
+    {
       double c = cos(j*dTheta);
       double s = sin(j*dTheta);
 
@@ -220,8 +222,8 @@ void makeCylinder(float botRadius, float topRadius, float height, int slices, in
         v[0], v[1], v[2],
         n[0], n[1], n[2],
         uv[0], uv[1],
-        t[0], t[1], t[2],
-        b[0], b[1], b[2]);
+        0, 0, 0, //t[0], t[1], t[2],
+        0, 0, 0 ); //b[0], b[1], b[2]);
       ++vtxIter;
     }
   }
